@@ -1,16 +1,15 @@
 class PID_controller():
-    def __init__(self, Kp, Ki, Kd, setpoint):
+    def __init__(self, Kp, Ki, Kd):
         
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
-        self.setpoint = setpoint
         self.previous_error = 0
         self.integral = 0
 
-    def compute(self, current_value, dt):
+    def compute(self, current_value, setpoint, dt):
         
-        error = self.setpoint - current_value
+        error = setpoint - current_value
 
         P_out = self.Kp * error
 
