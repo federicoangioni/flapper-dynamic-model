@@ -9,6 +9,8 @@ from scipy import signal
 from controller import PID_controller
 from state_estimator import MahonyIMU
 
+# TODO
+# Verify pitch, yaw and roll angles are estimated correctly, compare with optitrack -> they are correct
 
 flight_exp = "flight_001"
 
@@ -48,9 +50,9 @@ yawrate_ki = 0
 yawrate_kd = 0
 yawrate_kff = 220
 
-# Ouput of controllers
+# Ouput of attitude controllers
 controller_pitch = []
-
+pitches = []
 
 sensfusion = MahonyIMU()
 
@@ -64,40 +66,41 @@ pitchrate_pid = PID_controller(pitchrate_kp, pitchrate_ki, pitchrate_kd)
 rollrate_pid = PID_controller(rollrate_kp, rollrate_ki, rollrate_kd)
 yawrate_pid = PID_controller(yawrate_kp, yawrate_ki, yawrate_kd)
 
+
 def attitude_controller(onboard, i, dt):
     gx, gy, gz = onboard.loc[i, "gyro.x":"gyro.z"].to_numpy().T
     ax, ay, az = onboard.loc[i, "acc.x":"acc.z"].to_numpy().T
-    pitch_sp, roll_sp, yaw_sp = np.radians(
+    pitch_sp, roll_sp, yaw_sp = (
         onboard.loc[i, "controller.pitch":"controller.yaw"]
     )  # .pitch, .roll, .yaw is the setpoint according to craziflie docs, check controller_pid.c
 
-    pitchrate_sp, rollrate_sp, yawrate_sp = onboard.loc[
-        i, "controller.pitchRate":"controller.yawRate"
-    ]
-
     qx, qy, qz, qw = sensfusion.sensfusion6Update(gx, gy, gz, ax, ay, az, dt)
 
-    yaw, pitch, roll = R.from_quat([qx, qy, qz, qw]).as_euler(
+    yaw, pitch, roll = np.degrees(R.from_quat([qx, qy, qz, qw]).as_euler(
         "ZYX"
-    )  # - - +, in radians
-
-
+    ))  # - - +, in radians
 
     controller_pitch.append(pitch_pid.compute(pitch, pitch_sp, dt))
+    # controller_roll.append(roll_pid.compute(-roll, roll_sp, dt))
+    # controller_yaw.append(yaw_pid.compute(-yaw, yaw_sp, dt))
+
+
+def rate_controller(dt):
+    raise NotImplementedError
 
 
 if __name__ == "__main__":
     start = time()
 
-    b, a = signal.butter(2, 3, fs=500)  # type: ignore
-
     # Declare data file paths
     data_dir = f"data/{flight_exp}/{flight_exp}"
     optitrack_csv = f"{data_dir}_optitrack.csv"
     onboard_csv = f"{data_dir}_flapper.csv"
+    processed_csv = f"{data_dir}_processed.csv"
 
     # Load onboard data
     onboard_data = pd.read_csv(onboard_csv)
+    processed_data = pd.read_csv(processed_csv)
 
     for i in range(len(onboard_data)):
         attitude_controller(onboard_data, i, 1 / freq_attitude)
@@ -107,12 +110,12 @@ if __name__ == "__main__":
 
     print(f"Process run in {round(end - start, 3)} s")
 
-    filtered_data = signal.filtfilt(b, a, onboard_data.iloc[:, 1:], axis=0)
-
-    onboard_data = pd.DataFrame(filtered_data, columns=onboard_data.columns[1:])
-
     # Can i verify the output of the attitude pid controller?
 
+    # plt.plot(controller_pitch)
+    plt.figure()
     plt.plot(controller_pitch)
-    plt.plot(np.radians(onboard_data["controller.pitchRate"]))
-    plt.show()
+    plt.savefig("ouput2.png")
+    plt.figure()
+    plt.plot(processed_data["onboard.controller.pitchrate"])
+    plt.savefig("output.png")
