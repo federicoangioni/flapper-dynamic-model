@@ -52,7 +52,13 @@ yawrate_kff = 220
 
 # Ouput of attitude controllers
 controller_pitch = []
-pitches = []
+controller_roll = []
+controller_yaw = []
+
+# Ouput of attitude rate controllers
+controller_pitchrate = []
+controller_rollrate = []
+controller_yawrate = []
 
 sensfusion = MahonyIMU()
 
@@ -81,12 +87,26 @@ def attitude_controller(onboard, i, dt):
     ))  # - - +, in radians
 
     controller_pitch.append(pitch_pid.compute(pitch, pitch_sp, dt))
-    # controller_roll.append(roll_pid.compute(-roll, roll_sp, dt))
-    # controller_yaw.append(yaw_pid.compute(-yaw, yaw_sp, dt))
+    controller_roll.append(roll_pid.compute(-roll, roll_sp, dt))
+    controller_yaw.append(yaw_pid.compute(-yaw, yaw_sp, dt))
 
 
-def rate_controller(dt):
-    raise NotImplementedError
+def rate_controller(onboard, i, dt):
+    gx, gy, gz = np.radians(onboard.loc[i, "gyro.x":"gyro.z"].to_numpy().T)
+    pitch_sp, roll_sp, yaw_sp = (
+        onboard.loc[i, "controller.pitchRate":"controller.yawRate"]
+    )  # .pitchRate, .rollRate, .yawRate is the setpoint according to craziflie docs, check controller_pid.c
+
+
+    pitchrate_sp = controller_pitch[-1]
+    rollrate_sp = controller_roll[-1]
+    yawrate_sp = controller_yaw[-1]
+
+    controller_pitchrate.append(pitchrate_pid.compute(gy, pitchrate_sp, dt))
+    controller_rollrate.append(pitchrate_pid.compute(gx, rollrate_sp, dt))
+    controller_yawrate.append(pitchrate_pid.compute(gz, yawrate_sp, dt))
+
+
 
 
 if __name__ == "__main__":
@@ -104,18 +124,8 @@ if __name__ == "__main__":
 
     for i in range(len(onboard_data)):
         attitude_controller(onboard_data, i, 1 / freq_attitude)
-        # pitch_pid.compute(onboard_data["controller.pitch"])
+        rate_controller(onboard_data, i, 1 / freq_attitude)
 
     end = time()
 
     print(f"Process run in {round(end - start, 3)} s")
-
-    # Can i verify the output of the attitude pid controller?
-
-    # plt.plot(controller_pitch)
-    plt.figure()
-    plt.plot(controller_pitch)
-    plt.savefig("ouput2.png")
-    plt.figure()
-    plt.plot(processed_data["onboard.controller.pitchrate"])
-    plt.savefig("output.png")
