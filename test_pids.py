@@ -3,11 +3,10 @@ import matplotlib.pyplot as plt
 from time import time
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-from scipy import signal
 
 # Local imports
-from controller import PID_controller
-from state_estimator import MahonyIMU
+from utils.controller import PID_controller
+from utils.state_estimator import MahonyIMU
 
 """
 The rate pid outputs rollOuput, pitchOutput, and yawOutput

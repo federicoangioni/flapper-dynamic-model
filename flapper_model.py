@@ -161,17 +161,18 @@ if __name__ == "__main__":
 
     if show:
         print("Showing the outputs in plots")
-        fig, axs = plt.subplots(nrows=3, ncols=3)
+        fig, axs = plt.subplots(nrows=3, ncols=1)
 
-        axs[0, 0].set_title("Pitch command from rate PID")
-        axs[0, 0].plot(cmd_pitch)
-        axs[0, 0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5)
+        axs[0].set_title("Pitch command from rate PID")
+        axs[0].plot(cmd_pitch, label="simulated")
+        axs[0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5, label="recorded")
+        axs[0].legend()
 
-        axs[1, 0].set_title("Roll command from rate PID")
-        axs[1, 0].plot(cmd_roll)
-        axs[1, 0].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+        axs[1].set_title("Roll command from rate PID")
+        axs[1].plot(cmd_roll)
+        axs[1].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
 
-        axs[2, 0].set_title("Yaw command from rate PID")
-        axs[2, 0].plot(cmd_yaw)
-        axs[2, 0].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
+        axs[2].set_title("Yaw command from rate PID")
+        axs[2].plot(cmd_yaw)
+        axs[2].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
         plt.show()
