@@ -1,32 +1,58 @@
-class PID_controller():
-    def __init__(self, Kp, Ki, Kd):
-        
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.previous_error = 0
-        self.integral = 0
+from filter import LP2Pfilter
 
-    def compute(self, current_value, setpoint, dt):
-        
-        error = setpoint - current_value
 
-        P_out = self.Kp * error
+def constrain(x, min_val, max_val):
+    return max(min_val, min(x, max_val))
+
+
+class PID_controller:
+    def __init__(self, kp, ki, kd, kff, dt, sampling_rate, cutoff_freq, enableDfilter):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.kff = kff
+        self.sampling_rate = sampling_rate
+        self.cutoff_freq = cutoff_freq
+        self.deriv = 0
+        self.dt = dt
+        self.previous_measured = 0
+        self.integ = 0
+        self.iLimit = 5000
+        self.outputLimit = 0
+        self.enableDfilter = enableDfilter
+        if enableDfilter:
+            self.filt = LP2Pfilter(sampling_rate, cutoff_freq)
+
+    def compute(self, measured, setpoint, is_yaw_angle: bool):
+        error = setpoint - measured
+
+        # Proportional output
+        out_p = self.kp * error
+
+        # Derivative of the measured process variable
+        delta = -(measured - self.previous_measured)
+
+        if not self.enableDfilter:
+            deriv = delta / self.dt
+        else:
+            deriv = self.filt.apply(delta / self.dt)
+
+        out_d = self.kd * deriv
 
         # Consider a different integral method
-        self.integral += error * dt
-        I_out = self.Ki * self.integral
+        self.integ += error * self.dt
 
-        # First order differences for now
-        derivative = (error - self.previous_error) / dt
-        D_out = self.Kd * derivative
+        if self.iLimit != 0:
+            self.integ = constrain(self.integ, -self.iLimit, self.iLimit)
+        out_i = self.ki * self.integ
 
         # Compute output
-        out = P_out + I_out + D_out
+        out = out_p + out_i + out_d
+
+        if self.outputLimit:
+            out = constrain(out, -self.outputLimit, self.outputLimit)
 
         # Error update
-        self.previous_error = error
+        self.previous_measured = measured
 
         return out
-
-    
