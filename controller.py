@@ -46,8 +46,10 @@ class PID_controller:
             self.integ = constrain(self.integ, -self.iLimit, self.iLimit)
         out_i = self.ki * self.integ
 
+        outFF = self.kff * setpoint
+
         # Compute output
-        out = out_p + out_i + out_d
+        out = out_p + out_i + out_d + outFF
 
         if self.outputLimit:
             out = constrain(out, -self.outputLimit, self.outputLimit)
