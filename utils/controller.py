@@ -1,4 +1,4 @@
-from filter import LP2Pfilter
+from utils.filter import LP2Pfilter
 
 
 def constrain(x, min_val, max_val):
@@ -6,7 +6,7 @@ def constrain(x, min_val, max_val):
 
 
 class PID_controller:
-    def __init__(self, kp, ki, kd, kff, dt, sampling_rate, cutoff_freq, enableDfilter):
+    def __init__(self, kp, ki, kd, kff, iLimit, dt, sampling_rate, cutoff_freq, enableDfilter,):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -17,7 +17,7 @@ class PID_controller:
         self.dt = dt
         self.previous_measured = 0
         self.integ = 0
-        self.iLimit = 5000
+        self.iLimit = iLimit
         self.outputLimit = 0
         self.enableDfilter = enableDfilter
         if enableDfilter:
@@ -44,6 +44,7 @@ class PID_controller:
 
         if self.iLimit != 0:
             self.integ = constrain(self.integ, -self.iLimit, self.iLimit)
+
         out_i = self.ki * self.integ
 
         outFF = self.kff * setpoint
@@ -51,7 +52,7 @@ class PID_controller:
         # Compute output
         out = out_p + out_i + out_d + outFF
 
-        if self.outputLimit:
+        if self.outputLimit != 0:
             out = constrain(out, -self.outputLimit, self.outputLimit)
 
         # Error update
