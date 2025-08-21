@@ -9,16 +9,7 @@ import numpy as np
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 
-"""
-The rate pid outputs rollOuput, pitchOutput, and yawOutput
-
-which are cmd_roll, cmd_pitch and cmd_yaw, line 127 - 136 controller_pid.c
-
-rate PID takes in directly gyro.x, gyro.y and gyro.z,
-with respective setpoints "controll.rollRate" etc.
-
-"""
-
+show = True
 flight_exp = "flight_001"
 
 # Attitude PID definitions
@@ -67,15 +58,6 @@ omzFiltCut = 5
 yawrate_integration_limit = 166.7
 
 # -----------------------------------------------------------
-roll = []
-pitch = []
-yaw = []
-
-# Ouput of attitude controllers
-controller_rollrate = []
-controller_pitchrate = []
-controller_yawrate = []
-
 # Ouput of attitude rate controllers
 cmd_roll = []
 cmd_pitch = []
@@ -141,13 +123,20 @@ def controller_pid(sensor_rates, acc, attitude_sp, dt_imu):
 def power_distribution(onboard, i, dt):
     raise NotImplementedError
 
+def open_loop():
+    raise NotImplementedError
+
 
 def flapper(onboard, i, dt):
-    sensor_rates = onboard.loc[i, "gyro.x":"gyro.z"].to_numpy().T
-    acc = onboard.loc[i, "acc.x":"acc.z"].to_numpy().T
-    attitude_sp = onboard.loc[i, ["controller.roll", "controller.pitch", "controller.yaw"]]
+    sensor_rates = onboard.loc[i, ["gyro.x", "gyro.y", "gyro.z"]].to_numpy().T
+    acc = onboard.loc[i, ["acc.x", "acc.y" ,"acc.z"]].to_numpy().T
+    attitude_sp = onboard.loc[i, ["controller.roll", "controller.pitch", "controller.yaw"]].to_numpy().T
 
     cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(sensor_rates, acc, attitude_sp, dt)
+
+    cmd_roll.append(cmd_roll_i)
+    cmd_pitch.append(cmd_pitch_i)
+    cmd_yaw.append(cmd_yaw_i)
 
 
 if __name__ == "__main__":
@@ -170,8 +159,19 @@ if __name__ == "__main__":
 
     print(f"Process run in {round(end - start, 3)} s")
 
-    # plt.plot(controller_pitchrate)
-    plt.plot(controller_rollrate)
-    plt.plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+    if show:
+        print("Showing the outputs in plots")
+        fig, axs = plt.subplots(nrows=3, ncols=3)
 
-    plt.show()
+        axs[0, 0].set_title("Pitch command from rate PID")
+        axs[0, 0].plot(cmd_pitch)
+        axs[0, 0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5)
+
+        axs[1, 0].set_title("Roll command from rate PID")
+        axs[1, 0].plot(cmd_roll)
+        axs[1, 0].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+
+        axs[2, 0].set_title("Yaw command from rate PID")
+        axs[2, 0].plot(cmd_yaw)
+        axs[2, 0].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
+        plt.show()
