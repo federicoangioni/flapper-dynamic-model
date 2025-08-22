@@ -8,6 +8,7 @@ import numpy as np
 # Local imports
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
+from utils.power_distribution import power_distribution
 
 show = True
 flight_exp = "flight_001"
@@ -69,7 +70,8 @@ yawrate_sp = []
 attitude_measured = {"roll": 0, "pitch": 0, "yaw": 0}
 attitude_desired = {"roll": 0, "pitch": 0, "yaw": 0}
 attituderate_desired = {"rollrate": 0, "pitchrate": 0, "yawrate": 0}
-
+controls = {"thrust": 0, "roll": 0, "pitch": 0, "yaw": 0}
+motors_list = {"m1": [], "m2": [], "m3": [], "m4": []}
 
 sensfusion = MahonyIMU()
 
@@ -152,7 +154,7 @@ def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode
     attituderate_desired["rollrate"] = controller_rate_sp[0]
     attituderate_desired["pitchrate"] = controller_rate_sp[1]
     attituderate_desired["yawrate"] = controller_rate_sp[2]
-    
+
     cmd_roll_i, cmd_pitch_i, cmd_yaw_i = rate_controller(sensor_rates, attituderate_desired["rollrate"], attituderate_desired["pitchrate"], attituderate_desired["yawrate"])
 
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
@@ -161,14 +163,23 @@ def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode
 def flapper(onboard, i, dt):
     sensor_rates = onboard.loc[i, ["gyro.x", "gyro.y", "gyro.z"]].to_numpy().T
     acc = onboard.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
+    cmd_thrust = onboard.loc[i, "controller.cmd_thrust"]
 
     setpoints = {"roll": onboard.loc[i, "controller.roll"], "pitch": onboard.loc[i, "controller.pitch"], "yaw": onboard.loc[i, "controller.yaw"], "yawrate": onboard.loc[i, "controller.yawRate"]}
 
     cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(sensor_rates, acc, setpoints, dt, yaw_max_delta, yaw_mode="manual")
 
-    cmd_roll.append(cmd_roll_i)
-    cmd_pitch.append(cmd_pitch_i)
-    cmd_yaw.append(-cmd_yaw_i)
+    controls["thrust"] = cmd_thrust
+    controls["pitch"] = cmd_pitch_i
+    controls["roll"] = cmd_roll_i
+    controls["yaw"] = -cmd_yaw_i
+
+    motors = power_distribution(controls)
+
+    motors_list["m1"].append(motors["m1"])
+    motors_list["m2"].append(motors["m2"])
+    motors_list["m3"].append(motors["m3"])
+    motors_list["m4"].append(motors["m4"])
 
 
 """
@@ -215,4 +226,6 @@ if __name__ == "__main__":
         axs[2].set_ylim(-32767, 32767)
 
         plt.tight_layout()
+
+        fig, axs = plt.subplots(nrows=4, ncols=1)
         plt.show()
