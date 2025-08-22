@@ -32,6 +32,12 @@ class PID_controller:
         # Derivative of the measured process variable
         delta = -(measured - self.previous_measured)
 
+        if is_yaw_angle:
+            if delta > 180.0:
+                delta -=360.0
+            elif delta < -180.0:
+                delta += 360.0
+
         if not self.enableDfilter:
             deriv = delta / self.dt
         else:
@@ -39,7 +45,6 @@ class PID_controller:
 
         out_d = self.kd * deriv
 
-        # Consider a different integral method
         self.integ += error * self.dt
 
         if self.iLimit != 0:

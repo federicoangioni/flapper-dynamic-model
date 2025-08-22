@@ -57,11 +57,21 @@ yawrate_kff = 220
 omzFiltCut = 5
 yawrate_integration_limit = 166.7
 
+yaw_max_delta = 30.0
+
+list = []
 # -----------------------------------------------------------
 # Ouput of attitude rate controllers
 cmd_roll = []
 cmd_pitch = []
 cmd_yaw = []
+
+# Handle YAW rate controllers
+yawrate_sp = []
+attitude_measured = {"roll": 0, "pitch": 0, "yaw": 0}
+attitude_desired = {"roll": 0, "pitch": 0, "yaw": 1.4194613695144653}
+attituderate_desired = {"rollrate": 0, "pitchrate": 0, "yawrate": 0}
+
 
 sensfusion = MahonyIMU()
 
@@ -76,46 +86,78 @@ pitchrate_pid = PID_controller(pitchrate_kp, pitchrate_ki, pitchrate_kd, pitchra
 yawrate_pid = PID_controller(yawrate_kp, yawrate_ki, yawrate_kd, yawrate_kff, yawrate_integration_limit, 1 / freq_attitude_rate, freq_attitude_rate, omzFiltCut, True)
 
 
+def capAngle(angle):
+    result = angle
+
+    if result > 180.0:
+        result -= 360.0
+
+    if result < -180.0:
+        result += 180.0
+    return result
+
+
 def state_estimation(gx, gy, gz, ax, ay, az, dt):
     qx, qy, qz, qw = sensfusion.sensfusion6Update(gx, gy, gz, ax, ay, az, dt)
 
     yaw_i, pitch_i, roll_i = np.degrees(R.from_quat([qx, qy, qz, qw]).as_euler("ZYX"))  # - - +, in radians
+    list.append(-pitch_i)
+    return roll_i, -pitch_i, yaw_i
 
-    return roll_i, pitch_i, yaw_i
 
-
-def attitude_controller(attitude_measured, attitude_sp):
-    roll_sp, pitch_sp, yaw_sp = attitude_sp
-
-    roll_i, pitch_i, yaw_i = attitude_measured
-
-    controller_rollrate_i = roll_pid.compute(roll_i, roll_sp, False)
-    controller_pitchrate_i = pitch_pid.compute(pitch_i, pitch_sp, False)
-    controller_yawrate_i = yaw_pid.compute(yaw_i, yaw_sp, True)
+def attitude_controller(roll_i, pitch_i, yaw_i, roll_sp_i, pitch_sp_i, yaw_sp_i):
+    controller_rollrate_i = roll_pid.compute(roll_i, roll_sp_i, False)
+    controller_pitchrate_i = pitch_pid.compute(pitch_i, pitch_sp_i, False)
+    controller_yawrate_i = yaw_pid.compute(yaw_i, yaw_sp_i, True)
 
     return controller_rollrate_i, controller_pitchrate_i, controller_yawrate_i
 
 
-def rate_controller(attitude_rate_measured, attitude_rate_sp):
-    rollrate_sp, pitchrate_sp, yawrate_sp = attitude_rate_sp
-
+def rate_controller(attitude_rate_measured, rollrate_sp, pitchrate_sp, yawrate_sp):
     gx, gy, gz = attitude_rate_measured
 
     cmd_roll_i = rollrate_pid.compute(gx, rollrate_sp, False)
-    cmd_pitch_i = pitchrate_pid.compute(gy, pitchrate_sp, False)
-    cmd_yaw_i = yawrate_pid.compute(gz, yawrate_sp, False)
+    cmd_pitch_i = pitchrate_pid.compute(-gy, pitchrate_sp, False)
+    cmd_yaw_i = yawrate_pid.compute(-gz, yawrate_sp, False)
 
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
 
-def controller_pid(sensor_rates, acc, attitude_sp, dt_imu):
+def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode="velocity"):
     gx, gy, gz = sensor_rates
     ax, ay, az = acc
-    attitude_measured = state_estimation(gx, gy, gz, ax, ay, az, dt_imu)
 
-    controller_rate_sp = attitude_controller(attitude_measured, attitude_sp)
+    attitude_measured["roll"], attitude_measured["pitch"], attitude_measured["yaw"] = state_estimation(gx, gy, gz, ax, ay, az, dt_imu)
 
-    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = rate_controller(sensor_rates, controller_rate_sp)
+    if yaw_mode == "velocity":
+        attitude_desired["yaw"] = capAngle(attitude_desired["yaw"] + setpoints["yawrate"] * dt_imu)
+
+        if yaw_max_delta != 0.0:
+            delta = capAngle(attitude_desired["yaw"] - attitude_measured["yaw"])
+
+            if delta > yaw_max_delta:
+                attitude_desired["yaw"] = attitude_measured["yaw"] + yaw_max_delta
+            elif delta < -yaw_max_delta:
+                attitude_desired["yaw"] = attitude_measured["yaw"] - yaw_max_delta
+
+        attitude_desired["roll"] = setpoints["roll"]
+        attitude_desired["pitch"] = setpoints["pitch"]
+        attitude_desired["yaw"] = capAngle(attitude_desired["yaw"])
+
+    elif yaw_mode == "manual":
+        attitude_desired["yaw"] = setpoints["yaw"]
+        attitude_desired["roll"] = setpoints["roll"]
+        attitude_desired["pitch"] = setpoints["pitch"]
+
+    controller_rate_sp = attitude_controller(
+        attitude_measured["roll"], attitude_measured["pitch"], attitude_measured["yaw"], attitude_desired["roll"], attitude_desired["pitch"], attitude_desired["yaw"]
+    )
+
+    attituderate_desired["rollrate"] = controller_rate_sp[0]
+    attituderate_desired["pitchrate"] = controller_rate_sp[1]
+    attituderate_desired["yawrate"] = controller_rate_sp[2]
+
+    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = rate_controller(sensor_rates, attituderate_desired["rollrate"], attituderate_desired["pitchrate"], attituderate_desired["yawrate"])
 
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
@@ -123,21 +165,24 @@ def controller_pid(sensor_rates, acc, attitude_sp, dt_imu):
 def power_distribution(onboard, i, dt):
     raise NotImplementedError
 
-def open_loop():
-    raise NotImplementedError
-
 
 def flapper(onboard, i, dt):
     sensor_rates = onboard.loc[i, ["gyro.x", "gyro.y", "gyro.z"]].to_numpy().T
-    acc = onboard.loc[i, ["acc.x", "acc.y" ,"acc.z"]].to_numpy().T
-    attitude_sp = onboard.loc[i, ["controller.roll", "controller.pitch", "controller.yaw"]].to_numpy().T
+    acc = onboard.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
 
-    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(sensor_rates, acc, attitude_sp, dt)
+    setpoints = {"roll": onboard.loc[i, "controller.roll"], "pitch": onboard.loc[i, "controller.pitch"], "yawrate": onboard.loc[i, "controller.yawRate"]}
+
+    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(sensor_rates, acc, setpoints, dt, yaw_max_delta)
 
     cmd_roll.append(cmd_roll_i)
     cmd_pitch.append(cmd_pitch_i)
     cmd_yaw.append(cmd_yaw_i)
 
+
+"""
+The main loop runs at 1000 hz, 
+attitude and position at 500 hz
+"""
 
 if __name__ == "__main__":
     start = time()
@@ -161,7 +206,7 @@ if __name__ == "__main__":
 
     if show:
         print("Showing the outputs in plots")
-        fig, axs = plt.subplots(nrows=3, ncols=1)
+        fig, axs = plt.subplots(nrows=4, ncols=1)
 
         axs[0].set_title("Pitch command from rate PID")
         axs[0].plot(cmd_pitch, label="simulated")
@@ -175,4 +220,16 @@ if __name__ == "__main__":
         axs[2].set_title("Yaw command from rate PID")
         axs[2].plot(cmd_yaw)
         axs[2].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
+        axs[2].set_ylim(onboard_data["controller.cmd_yaw"].min(), onboard_data["controller.cmd_yaw"].max())
+
+        # axs[3].plot(onboard_data["controller.yawRate"])
+
+        plt.tight_layout()
         plt.show()
+
+
+"""
+controller.yaw is entering the first attitude pid and is correspondent to the state estimator yaw output
+controller.yawRate is exiting the first attitude pid and is  NOT equal to the output of my yawRate, so the issue must be in the first pid
+
+"""
