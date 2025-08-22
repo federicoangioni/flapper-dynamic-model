@@ -1,8 +1,19 @@
-import numpy as np
+from time import time
 
-class equationsMotion():
-    def __init__(self):
-        pass
 
-    def update():
-        pass
+
+
+
+
+if __name__ == "__main__":
+    start = time()
+    
+
+
+
+
+
+
+    end = time()
+
+    print(f"Process ended in {end - start}")

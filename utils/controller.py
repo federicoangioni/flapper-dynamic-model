@@ -6,7 +6,7 @@ def constrain(x, min_val, max_val):
 
 
 class PID_controller:
-    def __init__(self, kp, ki, kd, kff, iLimit, dt, sampling_rate, cutoff_freq, enableDfilter,):
+    def __init__(self, kp, ki, kd, kff, iLimit, dt, sampling_rate, cutoff_freq, enableDfilter, outputLimit=0):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -18,7 +18,7 @@ class PID_controller:
         self.previous_measured = 0
         self.integ = 0
         self.iLimit = iLimit
-        self.outputLimit = 0
+        self.outputLimit = outputLimit
         self.enableDfilter = enableDfilter
         if enableDfilter:
             self.filt = LP2Pfilter(sampling_rate, cutoff_freq)
@@ -34,7 +34,7 @@ class PID_controller:
 
         if is_yaw_angle:
             if delta > 180.0:
-                delta -=360.0
+                delta -= 360.0
             elif delta < -180.0:
                 delta += 360.0
 
