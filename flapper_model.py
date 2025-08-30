@@ -173,7 +173,9 @@ def flapper(onboard, i, dt):
     controls["pitch"] = cmd_pitch_i
     controls["roll"] = cmd_roll_i
     controls["yaw"] = -cmd_yaw_i
-
+    cmd_roll.append(cmd_roll_i)
+    cmd_pitch.append(cmd_pitch_i)
+    cmd_yaw.append(-cmd_yaw_i)
     motors = power_distribution(controls)
 
     motors_list["m1"].append(motors["m1"])
@@ -209,23 +211,46 @@ if __name__ == "__main__":
 
     if show:
         print("Showing the outputs in plots")
-        fig, axs = plt.subplots(nrows=3, ncols=1)
 
-        axs[0].set_title("Pitch command from rate PID")
-        axs[0].plot(cmd_pitch, label="simulated")
-        axs[0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5, label="recorded")
-        axs[0].legend()
+        # First figure
+        fig1, axs1 = plt.subplots(nrows=3, ncols=1)
 
-        axs[1].set_title("Roll command from rate PID")
-        axs[1].plot(cmd_roll)
-        axs[1].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+        axs1[0].set_title("Pitch command from rate PID")
+        axs1[0].plot(cmd_pitch, label="simulated")
+        axs1[0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5, label="recorded")
+        axs1[0].legend()
 
-        axs[2].set_title("Yaw command from rate PID")
-        axs[2].plot(cmd_yaw)
-        axs[2].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
-        axs[2].set_ylim(-32767, 32767)
+        axs1[1].set_title("Roll command from rate PID")
+        axs1[1].plot(cmd_roll)
+        axs1[1].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+
+        axs1[2].set_title("Yaw command from rate PID")
+        axs1[2].plot(cmd_yaw)
+        axs1[2].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
+        axs1[2].set_ylim(-32767, 32767)
 
         plt.tight_layout()
 
-        fig, axs = plt.subplots(nrows=4, ncols=1)
+        # Second figure
+        fig2, axs2 = plt.subplots(nrows=4, ncols=1)
+
+        axs2[0].set_title("motor commands m1")        
+        axs2[0].plot(motors_list["m1"], label="simulated")
+        axs2[0].plot(onboard_data["motor.m1"], label="recorded", alpha=0.5)
+
+        axs2[1].set_title("motor commands m2")
+        axs2[1].plot(motors_list["m2"])
+        axs2[1].plot(onboard_data["motor.m2"], alpha=0.5)
+
+        axs2[2].set_title("motor commands m3")
+        axs2[2].plot(motors_list["m3"])
+        axs2[2].plot(onboard_data["motor.m3"], alpha=0.5)
+
+        axs2[3].set_title("motor commands m4")
+        axs2[3].plot(motors_list["m4"])
+        axs2[3].plot(onboard_data["motor.m4"], alpha=0.5)
+
+
+        plt.tight_layout()
         plt.show()
+
