@@ -16,7 +16,6 @@ class MahonyIMU:
         self.qy = 0.0
         self.qz = 0.0
 
-
     def sensfusion6Update(self, gx, gy, gz, ax, ay, az, dt):
         gx = gx * np.pi / 180
         gy = gy * np.pi / 180
@@ -33,9 +32,9 @@ class MahonyIMU:
             halfvz = self.qw * self.qw - 0.5 + self.qz * self.qz
 
             # Error is sum of cross product between estimated and measured direction of gravity
-            halfex = (ay * halfvz - az * halfvy)
-            halfey = (az * halfvx - ax * halfvz)
-            halfez = (ax * halfvy - ay * halfvx)
+            halfex = ay * halfvz - az * halfvy
+            halfey = az * halfvx - ax * halfvz
+            halfez = ax * halfvy - ay * halfvx
 
             if self.two_ki > 0:
                 self.integralFBx += self.two_ki * halfex * dt  # integral error scaled by Ki
@@ -49,27 +48,26 @@ class MahonyIMU:
                 self.integralFBx = 0.0
                 self.integralFBy = 0.0
                 self.integralFBz = 0.0
-            
+
             # Apply proportional feedback
             gx += self.two_kp * halfex
             gy += self.two_kp * halfey
             gz += self.two_kp * halfez
 
-
         # Integrate rate of change of quaternion
-        gx *= (0.5 * dt)   #  pre-multiply common factors
-        gy *= (0.5 * dt)
-        gz *= (0.5 * dt)
+        gx *= 0.5 * dt  #  pre-multiply common factors
+        gy *= 0.5 * dt
+        gz *= 0.5 * dt
         qa = self.qw
         qb = self.qx
         qc = self.qy
-        self.qw += (-qb * gx - qc * gy - self.qz * gz)
-        self.qx += (qa * gx + qc * gz - self.qz * gy)
-        self.qy += (qa * gy - qb * gz + self.qz * gx)
-        self.qz += (qa * gz + qb * gy - qc * gx)
+        self.qw += -qb * gx - qc * gy - self.qz * gz
+        self.qx += qa * gx + qc * gz - self.qz * gy
+        self.qy += qa * gy - qb * gz + self.qz * gx
+        self.qz += qa * gz + qb * gy - qc * gx
 
         # Normalise quaternion
-        recipNorm = 1/np.sqrt(self.qw * self.qw + self.qx * self.qx + self.qy * self.qy + self.qz * self.qz)
+        recipNorm = 1 / np.sqrt(self.qw * self.qw + self.qx * self.qx + self.qy * self.qy + self.qz * self.qz)
         self.qw *= recipNorm
         self.qx *= recipNorm
         self.qy *= recipNorm
