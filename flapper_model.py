@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from time import time
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-
+from rich import print
+from rich.progress import track
 
 # Local imports
 from utils.controller import PID_controller
@@ -12,6 +13,7 @@ from utils.power_distribution import power_distribution
 
 show = True
 flight_exp = "flight_001"
+run_modeled_open_loop = False
 
 # Attitude PID definitions
 freq_attitude = 500  # Hz
@@ -160,7 +162,7 @@ def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
 
-def flapper(onboard, i, dt):
+def simulate_flapper_controllers(onboard, i, dt):
     sensor_rates = onboard.loc[i, ["gyro.x", "gyro.y", "gyro.z"]].to_numpy().T
     acc = onboard.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
     cmd_thrust = onboard.loc[i, "controller.cmd_thrust"]
@@ -202,12 +204,18 @@ if __name__ == "__main__":
     onboard_data = pd.read_csv(onboard_csv)
     processed_data = pd.read_csv(processed_csv)
 
-    for i in range(len(onboard_data)):
-        flapper(onboard_data, i, 1 / freq_attitude)
+    print("[bold green]Starting the simulation[/bold green]")
+
+    if run_modeled_open_loop:
+        print("[bold red]I'm still implementing this feature![/bold red]")
+    else:
+        print("[bold green]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold green]")
+        for i in track(range(len(onboard_data)), description="Processing..."):
+            simulate_flapper_controllers(onboard_data, i, 1 / freq_attitude)
 
     end = time()
 
-    print(f"Process run in {round(end - start, 3)} s")
+    print(f"[magenta]Process run in {round(end - start, 3)} s[/magenta]")
 
     if show:
         print("Showing the outputs in plots")
@@ -234,7 +242,7 @@ if __name__ == "__main__":
         # Second figure
         fig2, axs2 = plt.subplots(nrows=4, ncols=1)
 
-        axs2[0].set_title("motor commands m1")        
+        axs2[0].set_title("motor commands m1")
         axs2[0].plot(motors_list["m1"], label="simulated")
         axs2[0].plot(onboard_data["motor.m1"], label="recorded", alpha=0.5)
 
@@ -250,7 +258,5 @@ if __name__ == "__main__":
         axs2[3].plot(motors_list["m4"])
         axs2[3].plot(onboard_data["motor.m4"], alpha=0.5)
 
-
         plt.tight_layout()
         plt.show()
-
