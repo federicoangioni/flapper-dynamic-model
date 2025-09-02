@@ -39,6 +39,12 @@ def limit_thrust(value, min, max):
 
 
 def power_distribution(controls,):
+    """
+    m2: left flapping motor
+    m4: right flapping motor
+    m1: pitch servo
+    m3: yaw servo    
+    """
     thrust = min(controls["thrust"], flapperConfig["maxThrust"])
 
     pitch_neutral = limit_servo_neutral(flapperConfig["pitchServoNeutral"])
@@ -47,7 +53,7 @@ def power_distribution(controls,):
 
     motors_m1_uncapped = pitch_neutral * act_max / 100 + pitch_ampl * controls["pitch"]
     motors_m3_uncapped = yaw_neutral * act_max / 100 - controls["yaw"]
-    motors_m2_uncapped = 0.5 * controls["roll"] + thrust * (1 + roll_bias / 100)
+    motors_m2_uncapped = 0.5 * controls["roll"] + thrust * (1.0 + roll_bias / 100)
     motors_m4_uncapped = -0.5 * controls["roll"] + thrust * (1.0 - roll_bias / 100)
 
 
