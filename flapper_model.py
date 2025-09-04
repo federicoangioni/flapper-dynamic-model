@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     # Load onboard data
     onboard_data = pd.read_csv(onboard_csv)
-    processed_data = pd.read_csv(processed_csv)
+    # processed_data = pd.read_csv(processed_csv)
 
     print("[bold green]Starting the simulation[/bold green]")
 
