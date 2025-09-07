@@ -172,7 +172,7 @@ def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode
 
 def simulate_flapper_controllers(data, i, dt):
 
-    sensor_rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
+    sensor_rates = data.loc[i, [f"{prefix_data}gyro.x", f"{prefix_data}gyro.y", f"{prefix_data}gyro.z"]].to_numpy().T
     acc = data.loc[i, [f"{prefix_data}acc.x", f"{prefix_data}acc.y", f"{prefix_data}acc.z"]].to_numpy().T
     cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
 
@@ -210,13 +210,13 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data_dir = f"data/processed/{flight_exp}/{flight_exp}"
+    data_dir = f"data/raw/{flight_exp}/{flight_exp}"
     onboard_csv = f"{data_dir}_flapper.csv"
-    processed_csv = f"{data_dir}_processed.csv"
+    # processed_csv = f"{data_dir}_processed.csv"
 
     # Load onboard data
     if run_on_processed_data:
-        data = pd.read_csv(processed_csv)
+        data = 0 # pd.read_csv(processed_csv)
     else:
         data = pd.read_csv(onboard_csv)
     
