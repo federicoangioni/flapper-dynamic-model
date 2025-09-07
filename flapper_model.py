@@ -14,10 +14,20 @@ from utils.power_distribution import power_distribution
 show = True
 flight_exp = "flight_001"
 run_modeled_open_loop = False
+run_on_processed_data = False
+
+
+# Choose frequency to run the controllers
+if run_on_processed_data:
+    freq_attitude = 100  # Hz
+    freq_attitude_rate = 100  # Hz
+    prefix_data = "onboard."
+else:
+    freq_attitude = 500  # Hz
+    freq_attitude_rate = 500  # Hz
+    prefix_data = ""
 
 # Attitude PID definitions
-freq_attitude = 500  # Hz
-
 roll_kp = 10
 roll_ki = 0
 roll_kd = 0.2
@@ -37,8 +47,6 @@ yaw_kff = 0
 yaw_integration_limit = 360.0
 
 # Rate PID definitions
-freq_attitude_rate = 500  # Hz
-
 rollrate_kp = 50
 rollrate_ki = 0
 rollrate_kd = 0
@@ -162,12 +170,13 @@ def controller_pid(sensor_rates, acc, setpoints, dt_imu, yaw_max_delta, yaw_mode
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
 
-def simulate_flapper_controllers(onboard, i, dt):
-    sensor_rates = onboard.loc[i, ["gyro.x", "gyro.y", "gyro.z"]].to_numpy().T
-    acc = onboard.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
-    cmd_thrust = onboard.loc[i, "controller.cmd_thrust"]
+def simulate_flapper_controllers(data, i, dt):
 
-    setpoints = {"roll": onboard.loc[i, "controller.roll"], "pitch": onboard.loc[i, "controller.pitch"], "yaw": onboard.loc[i, "controller.yaw"], "yawrate": onboard.loc[i, "controller.yawRate"]}
+    sensor_rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
+    acc = data.loc[i, [f"{prefix_data}acc.x", f"{prefix_data}acc.y", f"{prefix_data}acc.z"]].to_numpy().T
+    cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
+
+    setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
 
     cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(sensor_rates, acc, setpoints, dt, yaw_max_delta, yaw_mode="manual")
 
@@ -186,6 +195,12 @@ def simulate_flapper_controllers(onboard, i, dt):
     motors_list["m4"].append(motors["m4"])
 
 
+def simulate_flapper_open_loop():
+
+
+
+    pass
+
 """
 The main loop runs at 1000 hz, 
 attitude and position at 500 hz
@@ -195,23 +210,25 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data_dir = f"data/{flight_exp}/{flight_exp}"
-    optitrack_csv = f"{data_dir}_optitrack.csv"
+    data_dir = f"data/processed/{flight_exp}/{flight_exp}"
     onboard_csv = f"{data_dir}_flapper.csv"
     processed_csv = f"{data_dir}_processed.csv"
 
     # Load onboard data
-    onboard_data = pd.read_csv(onboard_csv)
-    # processed_data = pd.read_csv(processed_csv)
+    if run_on_processed_data:
+        data = pd.read_csv(processed_csv)
+    else:
+        data = pd.read_csv(onboard_csv)
+    
 
     print("[bold green]Starting the simulation[/bold green]")
 
     if run_modeled_open_loop:
         print("[bold red]I'm still implementing this feature![/bold red]")
     else:
-        print("[bold green]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold green]")
-        for i in track(range(len(onboard_data)), description="Processing..."):
-            simulate_flapper_controllers(onboard_data, i, 1 / freq_attitude)
+        print("[bold thistle1]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold thistle1]")
+        for i in track(range(len(data)), description="Processing..."):
+            simulate_flapper_controllers(data, i, 1 / freq_attitude)
 
     end = time()
 
@@ -223,18 +240,19 @@ if __name__ == "__main__":
         # First figure
         fig1, axs1 = plt.subplots(nrows=3, ncols=1)
 
-        axs1[0].set_title("Pitch command from rate PID")
+        axs1[0].set_title("Pitch angle command from rate PID")
         axs1[0].plot(cmd_pitch, label="simulated")
-        axs1[0].plot(onboard_data["controller.cmd_pitch"], alpha=0.5, label="recorded")
+        axs1[0].plot(data[f"{prefix_data}controller.cmd_pitch"], alpha=0.5, label="recorded")
         axs1[0].legend()
 
-        axs1[1].set_title("Roll command from rate PID")
+        axs1[1].set_title("Roll angle command from rate PID")
         axs1[1].plot(cmd_roll)
-        axs1[1].plot(onboard_data["controller.cmd_roll"], alpha=0.5)
+        axs1[1].plot(data[f"{prefix_data}controller.cmd_roll"], alpha=0.5)
 
-        axs1[2].set_title("Yaw command from rate PID")
+        axs1[2].set_title("Yaw angle command from rate PID")
         axs1[2].plot(cmd_yaw)
-        axs1[2].plot(onboard_data["controller.cmd_yaw"], alpha=0.5)
+        axs1[2].plot(data[f"{prefix_data}controller.cmd_yaw"], alpha=0.5)
+        axs1[2].set_ylabel("time (s)")
         axs1[2].set_ylim(-32767, 32767)
 
         plt.tight_layout()
@@ -244,19 +262,28 @@ if __name__ == "__main__":
 
         axs2[0].set_title("motor commands m1")
         axs2[0].plot(motors_list["m1"], label="simulated")
-        axs2[0].plot(onboard_data["motor.m1"], label="recorded", alpha=0.5)
+        axs2[0].plot(data[f"{prefix_data}motor.m1"], label="recorded", alpha=0.5)
 
         axs2[1].set_title("motor commands m2")
         axs2[1].plot(motors_list["m2"])
-        axs2[1].plot(onboard_data["motor.m2"], alpha=0.5)
+        axs2[1].plot(data[f"{prefix_data}motor.m2"], alpha=0.5)
 
         axs2[2].set_title("motor commands m3")
         axs2[2].plot(motors_list["m3"])
-        axs2[2].plot(onboard_data["motor.m3"], alpha=0.5)
+        axs2[2].plot(data[f"{prefix_data}motor.m3"], alpha=0.5)
 
         axs2[3].set_title("motor commands m4")
         axs2[3].plot(motors_list["m4"])
-        axs2[3].plot(onboard_data["motor.m4"], alpha=0.5)
+        axs2[3].plot(data[f"{prefix_data}motor.m4"], alpha=0.5)
 
         plt.tight_layout()
+
+        # Third figure, plot angles, rates and velocities
+        fig3, axs3 = plt.subplots(nrows=4, ncols=4)
+        
+        # axs3[0, 0].plot(data[f"{prefix_data}pitch"])
+
+        plt.tight_layout()
+
+
         plt.show()
