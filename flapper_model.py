@@ -128,10 +128,10 @@ def state_estimation(rates, acc, dt):
         roll_i, -pitch_i, yaw_i: floats
             Estimated angular attitude in deg
     """
-    gx, gy, gz = rates
+    p, q, r = rates
     ax, ay, az = acc
 
-    qx, qy, qz, qw = sensfusion.sensfusion6Update(gx, gy, gz, ax, ay, az, dt)
+    qx, qy, qz, qw = sensfusion.sensfusion6Update(p, -q, -r, ax, ay, az, dt)
 
     yaw_i, pitch_i, roll_i = np.degrees(R.from_quat([qx, qy, qz, qw]).as_euler("ZYX"))
 
@@ -150,8 +150,8 @@ def rate_controller(attitude_rate_measured, rollrate_sp, pitchrate_sp, yawrate_s
     gx, gy, gz = attitude_rate_measured
 
     cmd_roll_i = rollrate_pid.compute(gx, rollrate_sp, False)
-    cmd_pitch_i = pitchrate_pid.compute(-gy, pitchrate_sp, False)
-    cmd_yaw_i = yawrate_pid.compute(-gz, yawrate_sp, False)
+    cmd_pitch_i = pitchrate_pid.compute(gy, pitchrate_sp, False)
+    cmd_yaw_i = yawrate_pid.compute(gz, yawrate_sp, False)
 
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
@@ -176,9 +176,9 @@ def controller_pid(attitude, rates, setpoints, dt_imu, yaw_max_delta, yaw_mode="
         attitude_desired["yaw"] = capAngle(attitude_desired["yaw"])
 
     elif yaw_mode == "manual":
-        attitude_desired["yaw"] = setpoints["yaw"]
         attitude_desired["roll"] = setpoints["roll"]
         attitude_desired["pitch"] = setpoints["pitch"]
+        attitude_desired["yaw"] = setpoints["yaw"]
 
     controller_rate_sp = attitude_controller(
         attitude_measured["roll"], attitude_measured["pitch"], attitude_measured["yaw"], attitude_desired["roll"], attitude_desired["pitch"], attitude_desired["yaw"]
@@ -199,7 +199,7 @@ def simulate_flapper(data, i, dt, use_model : bool):
         print("[red]You thought we implemented that haha![/red]")
     else:
         # Fetch data from onboard (unprocessed, for now) .csv
-        rates = data.loc[i, [f"{prefix_data}gyro.x", f"{prefix_data}gyro.y", f"{prefix_data}gyro.z"]].to_numpy().T
+        rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
         acc = data.loc[i, [f"{prefix_data}acc.x", f"{prefix_data}acc.y", f"{prefix_data}acc.z"]].to_numpy().T
         
         # Calculate estimated attitude through Mahony filter
@@ -238,19 +238,17 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data_dir = f"data/raw/{flight_exp}/{flight_exp}"
-    onboard_csv = f"{data_dir}_flapper.csv"
-    processed_csv = f"{data_dir}_oriented_processed.csv"
+    data_dir = f"data/processed/{flight_exp}/{flight_exp}"
+    onboard_csv = f"{data_dir}_oriented_onboard.csv"
+    data = pd.read_csv(onboard_csv)
 
     # Load onboard data
     if use_open_loop:
         print("[bold red]I'm still implementing this feature![/bold red]")
         exit()
-        data = 0 # pd.read_csv(processed_csv)
     else:
         print("[bold thistle1]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold thistle1]")
-        data = pd.read_csv(onboard_csv)
-        # data = pd.read_csv(processed_csv)
+        
     
 
     print("[bold green]Starting the simulation[/bold green]")
