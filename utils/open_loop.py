@@ -27,7 +27,7 @@ flapper_parameters = {"lw": None, "lz": None}
 
 
 class FlapperModel:
-    def __init__(self, inertia: dict, mass: float, dt: float, damping_coeffs=damping_coefficients, thrust_coeffs=thrust_coefficients, flapper_params=flapper_parameters):
+    def __init__(self, dt: float, inertia: dict = mmoi_with_wings_XY, mass: float = mass_with_wings, damping_coeffs=damping_coefficients, thrust_coeffs=thrust_coefficients, flapper_params=flapper_parameters):
         self.Ixx = inertia["Ixx"]
         self.Iyy = inertia["Iyy"]
         self.Izz = inertia["Izz"]
@@ -36,12 +36,15 @@ class FlapperModel:
 
         self.dt = dt
 
+        """Pay attention here it still needs to be implemented"""
         # Define the thrust coeffecients
-        self.c1, self.c2 = thrust_coeffs["c1", "c2"]
+        self.c1 = thrust_coefficients["c1"]
+        self.c2 = thrust_coefficients["c2"]
 
-        self.kx, self.ky, self.kz = damping_coeffs["kx", "ky", "ky"]
+        self.kx = damping_coeffs["kx"]
 
-        self.lw, self.lz = flapper_params["lw", "lz"]
+        self.lw= flapper_params["lw"]
+
 
         # Inizialize state variables and dictionaries that get updated every timestep
         self.state = {"phi": 0, "theta": 0, "psi": 0, "p": 0, "q": 0, "r": 0, "u": 0, "v": 0, "w": 0}
