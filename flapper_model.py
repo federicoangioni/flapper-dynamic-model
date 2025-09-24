@@ -7,10 +7,13 @@ from rich import print
 from rich.progress import track
 
 # Local imports
+import utils.config as config
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 from utils.power_distribution import power_distribution
 from utils.open_loop import FlapperModel
+from utils.data_loader import load_data
+
 
 show = True
 flight_exp = "flight_001"
@@ -27,47 +30,6 @@ else:
     freq_attitude_rate = 500  # Hz
     prefix_data = ""
 
-# Attitude PID definitions
-roll_kp = 10
-roll_ki = 0
-roll_kd = 0.2
-roll_kff = 0
-roll_integration_limit = 20.0
-
-pitch_kp = 13
-pitch_ki = 0
-pitch_kd = 1
-pitch_kff = 0
-pitch_integration_limit = 20.0
-
-yaw_kp = 8
-yaw_ki = 0
-yaw_kd = 0.35
-yaw_kff = 0
-yaw_integration_limit = 360.0
-
-# Rate PID definitions
-rollrate_kp = 50
-rollrate_ki = 0
-rollrate_kd = 0
-rollrate_kff = 0
-omxFiltCut = 20
-rollrate_integration_limit = 33.3
-
-pitchrate_kp = 50
-pitchrate_ki = 0
-pitchrate_kd = 0
-pitchrate_kff = 0
-omyFiltCut = 20
-pitchrate_integration_limit = 33.3
-
-yawrate_kp = 80
-yawrate_ki = 0
-yawrate_kd = 0
-yawrate_kff = 220
-omzFiltCut = 5
-yawrate_integration_limit = 166.7
-yaw_max_delta = 30.0
 
 # -----------------------------------------------------------
 # Ouput of attitude rate controllers
@@ -89,17 +51,38 @@ motors_list = {"m1": [], "m2": [], "m3": [], "m4": []}
 sensfusion = MahonyIMU()
 
 # Instantiate PID attitude controllers
-roll_pid = PID_controller(roll_kp, roll_ki, roll_kd, roll_kff, roll_integration_limit, 1 / freq_attitude, freq_attitude, 0, False)
-pitch_pid = PID_controller(pitch_kp, pitch_ki, pitch_kd, pitch_kff, pitch_integration_limit, 1 / freq_attitude, freq_attitude, 0, False)
-yaw_pid = PID_controller(yaw_kp, yaw_ki, yaw_kd, yaw_kff, yaw_integration_limit, 1 / freq_attitude, freq_attitude, 0, False)
+roll_pid = PID_controller(
+    config.ROLL_KP, config.ROLL_KI, config.ROLL_KD, config.ROLL_KFF,
+    config.ROLL_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+)
+pitch_pid = PID_controller(
+    config.PITCH_KP, config.PITCH_KI, config.PITCH_KD, config.PITCH_KFF,
+    config.PITCH_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+)
+yaw_pid = PID_controller(
+    config.YAW_KP, config.YAW_KI, config.YAW_KD, config.YAW_KFF,
+    config.YAW_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+)
 
 # Instantiate PID attitude rate controllers
-rollrate_pid = PID_controller(rollrate_kp, rollrate_ki, rollrate_kd, rollrate_kff, rollrate_integration_limit, 1 / freq_attitude_rate, freq_attitude_rate, omxFiltCut, True)
-pitchrate_pid = PID_controller(pitchrate_kp, pitchrate_ki, pitchrate_kd, pitchrate_kff, pitchrate_integration_limit, 1 / freq_attitude_rate, freq_attitude_rate, omyFiltCut, True)
-yawrate_pid = PID_controller(yawrate_kp, yawrate_ki, yawrate_kd, yawrate_kff, yawrate_integration_limit, 1 / freq_attitude_rate, freq_attitude_rate, omzFiltCut, True, 32767.0)
+rollrate_pid = PID_controller(
+    config.ROLLRATE_KP, config.ROLLRATE_KI, config.ROLLRATE_KD, config.ROLLRATE_KFF,
+    config.ROLLRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.OMX_FILT_CUT, True
+)
+pitchrate_pid = PID_controller(
+    config.PITCHRATE_KP, config.PITCHRATE_KI, config.PITCHRATE_KD, config.PITCHRATE_KFF,
+    config.PITCHRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.OMY_FILT_CUT, True
+)
+yawrate_pid = PID_controller(
+    config.YAWRATE_KP, config.YAWRATE_KI, config.YAWRATE_KD, config.YAWRATE_KFF,
+    config.YAWRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.OMZ_FILT_CUT, True, 32767.0
+)
 
 # Instantiate the open loop model
-flapper_model = FlapperModel(freq_attitude)
+# flapper_model = FlapperModel(freq_attitude)
 
 def capAngle(angle):
     result = angle
@@ -210,7 +193,7 @@ def simulate_flapper(data, i, dt, use_model : bool):
     cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
 
     # Run the PID cascade
-    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(attitude, rates, setpoints, dt, yaw_max_delta, yaw_mode="manual")
+    cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(attitude, rates, setpoints, dt, config.YAW_MAX_DELTA, yaw_mode="manual")
 
     controls["thrust"] = cmd_thrust
     controls["pitch"] = cmd_pitch_i
@@ -238,9 +221,7 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data_dir = f"data/processed/{flight_exp}/{flight_exp}"
-    onboard_csv = f"{data_dir}_oriented_onboard.csv"
-    data = pd.read_csv(onboard_csv)
+    data = load_data(config.PLATFORM)
 
     # Load onboard data
     if use_open_loop:

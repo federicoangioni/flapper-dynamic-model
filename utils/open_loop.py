@@ -1,5 +1,4 @@
 import numpy as np
-
 # mass moments of inertia
 mmoi_with_wings = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 3.6e-4}  # kg/m^2
 
@@ -27,7 +26,7 @@ flapper_parameters = {"lw": None, "lz": None}
 
 
 class FlapperModel:
-    def __init__(self, dt: float, inertia: dict = mmoi_with_wings_XY, mass: float = mass_with_wings, damping_coeffs=damping_coefficients, thrust_coeffs=thrust_coefficients, flapper_params=flapper_parameters):
+    def __init__(self, dt: float, inertia: dict , mass: float, damping_coeffs, thrust_coeffs, flapper_params):
         self.Ixx = inertia["Ixx"]
         self.Iyy = inertia["Iyy"]
         self.Izz = inertia["Izz"]
