@@ -11,6 +11,7 @@ For the Nimble data, from the science paper "":
 
 The data is divided in numbers of experiment, of which several runs are run. Below is the structure of the MATLAB structs.
 
+```
 experiment###
 ├── motion_tracking
 │   ├── POSx, POSy, POSz
@@ -64,3 +65,4 @@ experiment###
 │   ├── FREQright_wing_interp
 │   ├── TIME
 │   ├── Averages and stds (for all *_interp signals)
+```
