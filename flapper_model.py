@@ -230,7 +230,7 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data = load_data(config.PLATFORM).iloc[:int(10e3), :]
+    data = load_data(config.PLATFORM)
 
     
     # Load onboard data
