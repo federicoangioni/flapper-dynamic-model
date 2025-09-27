@@ -15,6 +15,9 @@ class FlapperModel:
 
         self.dt = dt
 
+        self.c1 = thrust_coeffs['c1']
+        self.c2 = thrust_coeffs['c2']
+
         self.flapping_max, self.dihedral_max, self.yaw_max = max_act_state["flapping_max"], max_act_state["dihedral_max"], max_act_state["yaw_max"]
 
         self.max_pwm_m1, self.max_pwm_m2, self.max_pwm_m3, self.max_pwm_m4 =  max_pwm["m1"], max_pwm["m2"], max_pwm["m3"], max_pwm["m4"]
@@ -28,7 +31,7 @@ class FlapperModel:
         self.ss_flapping, self.ss_dihedral, self.ss_yaw, x_freq_left, x_freq_right, x_dihedral, x_yaw = self.init_state_space(tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw)
 
         # state vector for the flapper
-        self.flappper_state = {"phi": 0, "theta": 0, "psi": 0, "p": 0, "q": 0, "r": 0, "u": 0, "v": 0, "w": 0, "freq_left": 0, "freq_right": 0, "dihedral": 0, "yaw_actuator_angle": 0}
+        self.flapper_state = {"phi": 0, "theta": 0, "psi": 0, "p": 0, "q": 0, "r": 0, "u": 0, "v": 0, "w": 0, "freq_left": 0, "freq_right": 0, "dihedral": 0, "yaw_actuator_angle": 0}
 
         # state vectors for the actuators, they are all initialised at zero
         self.actuator_state = {'x_freq_left': x_freq_left, 'x_freq_right': x_freq_right, 'x_dihedral': x_dihedral, 'x_yaw': x_yaw}
@@ -40,9 +43,9 @@ class FlapperModel:
         thrust_left = self.compute_thrust(freq_left)
         thrust_right = self.compute_thrust(freq_right)
 
-        u, v, w = self.state["u", "v", "w"]
-        p, q, r = self.state["p", "q", "r"]
-        phi, theta, psi = self.state["phi", "theta", "psi"]
+        u, v, w = self.flapper_state["u"], self.flapper_state["v"], self.flapper_state["w"]
+        p, q, r = self.flapper_state["p"], self.flapper_state["q"], self.flapper_state["r"]
+        phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
 
         X = 0
@@ -67,24 +70,32 @@ class FlapperModel:
     def compute_thrust(self, f):
         return self.c1 * f + self.c2
 
-    def update(self, accelerations):
-        phi, theta, psi = self.state["phi", "theta", "psi"]
+    def update(self, pwm_signals):
+        phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
+
+        accelerations = self.calculate_accelerations(pwm_signals)
 
         # Here integrate the values obtined from the equations of motion
-        self.state["u"] += accelerations["u_dot"] * self.dt
-        self.state["v"] += accelerations["v_dot"] * self.dt
-        self.state["w"] += accelerations["w_dot"] * self.dt
-        self.state["p"] += accelerations["p_dot"] * self.dt
-        self.state["q"] += accelerations["q_dot"] * self.dt
-        self.state["r"] += accelerations["r_dot"] * self.dt
+        self.flapper_state["u"] += accelerations["u_dot"] * self.dt
+        self.flapper_state["v"] += accelerations["v_dot"] * self.dt
+        self.flapper_state["w"] += accelerations["w_dot"] * self.dt
+        self.flapper_state["p"] += accelerations["p_dot"] * self.dt
+        self.flapper_state["q"] += accelerations["q_dot"] * self.dt
+        self.flapper_state["r"] += accelerations["r_dot"] * self.dt
 
-        phi_dot = self.state["p"] + self.state["q"] * np.sin(phi) * np.tan(theta) + self.state["r"] * np.cos(phi) * np.tan(theta)
-        theta_dot = self.state["q"] * np.cos(phi) - self.state["r"] * np.sin(phi)
-        psi_dot = self.state["q"] * np.sin(phi) / np.cos(theta) + self.state["r"] * np.cos(phi) / np.cos(theta)
+        phi_dot = self.flapper_state["p"] + self.flapper_state["q"] * np.sin(phi) * np.tan(theta) + self.flapper_state["r"] * np.cos(phi) * np.tan(theta)
+        theta_dot = self.flapper_state["q"] * np.cos(phi) - self.flapper_state["r"] * np.sin(phi)
+        psi_dot = self.flapper_state["q"] * np.sin(phi) / np.cos(theta) + self.flapper_state["r"] * np.cos(phi) / np.cos(theta)
 
-        self.state["phi"] += phi_dot * self.dt
-        self.state["theta"] += theta_dot * self.dt
-        self.state["psi"] += psi_dot * self.dt
+        self.flapper_state["phi"] += phi_dot * self.dt
+        self.flapper_state["theta"] += theta_dot * self.dt
+        self.flapper_state["psi"] += psi_dot * self.dt
+
+        rates =  [float(self.flapper_state['p']), float(self.flapper_state['q']), float(self.flapper_state['r'])]
+
+        attitude = [float(self.flapper_state['phi']), float(self.flapper_state['theta']), float(self.flapper_state['r'])]
+
+        return attitude, rates
 
     
     def init_state_space(self, tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw):
@@ -177,8 +188,8 @@ class FlapperModel:
     
     def step_system(self, x, ss, u, dt):
         u = np.atleast_1d(u)
-        y = ss.C @ x + ss.D @ u
-        x_new = x + dt * (ss.A @ x + ss.B @ u)
+        y = ss['C'] @ x + ss['D'] @ u
+        x_new = x + dt * (ss['A'] @ x + ss['B'] @ u)
         return x_new, y
 
 

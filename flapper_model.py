@@ -38,7 +38,7 @@ attitude_measured = {"roll": 0, "pitch": 0, "yaw": 0}
 attitude_desired = {"roll": 0, "pitch": 0, "yaw": 0}
 attituderate_desired = {"rollrate": 0, "pitchrate": 0, "yawrate": 0}
 controls = {"thrust": 0, "roll": 0, "pitch": 0, "yaw": 0}
-motors_list = {"m1": [], "m2": [], "m3": [], "m4": []}
+motors_list = {"m1": [36044], "m2": [0], "m3": [42597], "m4": [0]}
 
 # Instantiate the sensor fusion filter
 sensfusion = MahonyIMU()
@@ -174,7 +174,21 @@ def controller_pid(attitude, rates, setpoints, dt_imu, yaw_max_delta, yaw_mode="
 def simulate_flapper(data, i, dt, use_model : bool):
 
     if use_model:
-        print("[red]You thought we implemented that haha![/red]")
+        # Use previous motor command
+        pwm_m1 = motors_list["m1"][-1]
+        pwm_m2 = motors_list["m2"][-1]
+        pwm_m3 = motors_list["m3"][-1]
+        pwm_m4 = motors_list["m4"][-1]
+        pwm_signals = {'m1': pwm_m1, 'm2':pwm_m2, 'm3':pwm_m3, 'm4':pwm_m4}
+
+        attitude, rates = Flapper.update(pwm_signals)
+
+
+        '''
+        we need to output the rates
+
+        for visualisations, use position and angle
+        '''
     else:
         # Fetch data from onboard (unprocessed, for now) .csv
         rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
@@ -221,8 +235,8 @@ if __name__ == "__main__":
     
     # Load onboard data
     if config.USE_OPEN_LOOP:
-        print("[bold red]I'm still implementing this feature![/bold red]")
-        exit()
+        print("[bold thistle1]Running the modeled open loop.[/bold thistle1]")
+        # exit()
     else:
         print("[bold thistle1]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold thistle1]")
         

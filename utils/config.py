@@ -1,7 +1,7 @@
 import numpy as np
 
 PLATFORM = 'flapper'
-USE_OPEN_LOOP = False
+USE_OPEN_LOOP = True
 
 UINT_16B = 65535
 
