@@ -4,7 +4,7 @@ from scipy.signal import lti
 g0 = 9.80665  # m/s^2
 
 class FlapperModel:
-    def __init__(self, dt, inertia, mass, damping_coeffs, thrust_coeffs, flapper_dims, tf_coeffs, max_pwm, min_pwm, max_act_state,):
+    def __init__(self, dt, inertia, mass, model_coeffs, thrust_coeffs, flapper_dims, tf_coeffs, max_pwm, mid_pwm, min_pwm, max_act_state,):
         """Assume everything is given in standard SI units"""
 
         self.Ixx = inertia["Ixx"]
@@ -20,6 +20,8 @@ class FlapperModel:
         self.max_pwm_m1, self.max_pwm_m2, self.max_pwm_m3, self.max_pwm_m4 =  max_pwm["m1"], max_pwm["m2"], max_pwm["m3"], max_pwm["m4"]
 
         self.min_pwm_m1, self.min_pwm_m2, self.min_pwm_m3, self.min_pwm_m4 =  min_pwm["m1"], min_pwm["m2"], min_pwm["m3"], min_pwm["m4"]
+
+        self.mid_pwm_m1, self.mid_pwm_m2, self.mid_pwm_m3, self.mid_pwm_m4 =  mid_pwm["m1"], mid_pwm["m2"], mid_pwm["m3"], mid_pwm["m4"]
 
         tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw = (tf_coeffs["tau_flapping"], tf_coeffs["omega_dihedral"], tf_coeffs["zeta_dihedral"], tf_coeffs["omega_yaw"], tf_coeffs["zeta_yaw"])
 
@@ -90,21 +92,21 @@ class FlapperModel:
         num_flapping = [1]
         den_flapping = [tau_flapping, 1]
 
-        sys_flapping = lti(num_flapping, den_flapping)
+        sys_flapping = lti(num_flapping, den_flapping).to_ss()
 
         A_flapping, B_flapping, C_flapping, D_flapping = sys_flapping.A, sys_flapping.B, sys_flapping.C, sys_flapping.D
         
         num_dihedral = [omega_dihedral**2]
         den_dihedral = [1, 2*zeta_dihedral*omega_dihedral, omega_dihedral**2]
 
-        sys_dihedral = lti(num_dihedral, den_dihedral)
+        sys_dihedral = lti(num_dihedral, den_dihedral).to_ss()
 
         A_dihedral, B_dihedral, C_dihedral, D_dihedral = sys_dihedral.A, sys_dihedral.B, sys_dihedral.C, sys_dihedral.D
 
         num_yaw = [omega_yaw**2]
         den_yaw = [1, 2*zeta_yaw*omega_yaw, omega_yaw**2]
 
-        sys_yaw = lti(num_yaw, den_yaw)
+        sys_yaw = lti(num_yaw, den_yaw).to_ss()
 
         A_yaw, B_yaw, C_yaw, D_yaw = sys_yaw.A, sys_yaw.B, sys_yaw.C, sys_yaw.D
 
@@ -167,7 +169,7 @@ class FlapperModel:
         if pwm >= mid_pwm:
             state_value = (pwm - mid_pwm) / (max_pwm - mid_pwm) * max_state
         else:
-            state_value = - (pwm - mid_pwm) / (max_pwm - mid_pwm) * max_state
+            state_value = (pwm - mid_pwm) / (mid_pwm - min_pwm) * max_state
         
         state_value = max(-max_state, min(state_value, max_state))
         

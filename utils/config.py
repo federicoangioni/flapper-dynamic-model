@@ -1,5 +1,12 @@
+import numpy as np
+
 PLATFORM = 'flapper'
 USE_OPEN_LOOP = False
+
+UINT_16B = 65535
+
+FREQ_ATTITUDE = 500  # Hz
+FREQ_ATTITUDE_RATE = 500  # Hz
 
 # Attitude PID definitions
 ROLL_KP = 10
@@ -44,16 +51,17 @@ YAWRATE_INTEGRATION_LIMIT = 166.7
 YAW_MAX_DELTA = 30.0
 
 
-# mass moments of inertia
+# Mass moments of inertia
 MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 3.6e-4}  # kg/m^2
 
 MMOI_WITH_WINGS_XY = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 2.8e-4}  # kg/m^2 # with wings oriented in XY plane
 
 MMOI_NO_WINGS = {"Ixx": 3.1e-4, "Iyy": 3.0e-4, "Izz": 2.7e-4}  # kg/m^2
 
-M_WINGS = 0.1026  # kg
+# Mass
+MASS_WINGS = 0.1026  # kg
 
-M_NO_WINGS = 0.0943  # kg
+MASS_NO_WINGS = 0.0943  # kg
 
 # Transfer function values
 TAU_FLAPPING = 0.0796
@@ -62,6 +70,39 @@ OMEGA_DIHEDRAL = 40
 
 ZETA_DIHEDRAL = 0.634
 
-OMEGA_YAW = None
+OMEGA_YAW = 10 # estimated general servo values 
 
-ZETA_YAW = None
+ZETA_YAW = 0.7 # estimated general servo values
+
+
+# Motor charactheristics
+
+MAXTHRUST_PWM = 60000
+
+ROLLBIAS = 0
+
+PITCH_SERVO_NEUTRAL = 55
+
+YAW_SERVO_NEUTRAL = 60
+
+MIN_PWM = {'m1' : 0, 'm2': 0, 'm3': 0, 'm4': 0}
+
+# Dihedral and yaw maximum angle estimated from pictures
+MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(20), 'flapping_max': 20, 'yaw_max':  np.tan(2/3)}
+
+# Dynamic model specifics
+
+THRUST_COEFFS = {'c1': 0.0114, 'c2': -0.0449}
+
+MODEL_COEFFS = None
+
+FLAPPER_DIMS = {'lw' : 0}
+
+# Assembling necessary dictionaries
+TF_COEFFS = {'tau_flapping': TAU_FLAPPING, 'omega_dihedral': OMEGA_DIHEDRAL, 'zeta_dihedral': ZETA_DIHEDRAL, 'omega_yaw': OMEGA_YAW, 'zeta_yaw': ZETA_YAW}
+
+MAX_PWM = {'m1' : MAXTHRUST_PWM, 'm2': UINT_16B, 'm3': MAXTHRUST_PWM, 'm4': UINT_16B}
+
+FLAPPERCONFIG = {"pitchServoNeutral": PITCH_SERVO_NEUTRAL, "yawServoNeutral": YAW_SERVO_NEUTRAL, "rollBias": ROLLBIAS, "maxThrust": MAXTHRUST_PWM}
+
+MID_PWM = {'m1': PITCH_SERVO_NEUTRAL * MAX_PWM['m1'], 'm2' : 0, 'm3': YAW_SERVO_NEUTRAL * MAX_PWM['m3'], 'm4': 0}

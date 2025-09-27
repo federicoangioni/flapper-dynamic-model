@@ -20,8 +20,7 @@ flight_exp = "flight_001"
 
 # Choose frequency to run the controllers
 
-freq_attitude = 500  # Hz
-freq_attitude_rate = 500  # Hz
+
 prefix_data = ""
 
 
@@ -47,36 +46,38 @@ sensfusion = MahonyIMU()
 # Instantiate PID attitude controllers
 roll_pid = PID_controller(
     config.ROLL_KP, config.ROLL_KI, config.ROLL_KD, config.ROLL_KFF,
-    config.ROLL_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+    config.ROLL_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
 )
 pitch_pid = PID_controller(
     config.PITCH_KP, config.PITCH_KI, config.PITCH_KD, config.PITCH_KFF,
-    config.PITCH_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+    config.PITCH_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
 )
 yaw_pid = PID_controller(
     config.YAW_KP, config.YAW_KI, config.YAW_KD, config.YAW_KFF,
-    config.YAW_INTEGRATION_LIMIT, 1 / freq_attitude, freq_attitude, 0, False
+    config.YAW_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
 )
 
 # Instantiate PID attitude rate controllers
 rollrate_pid = PID_controller(
     config.ROLLRATE_KP, config.ROLLRATE_KI, config.ROLLRATE_KD, config.ROLLRATE_KFF,
-    config.ROLLRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.ROLLRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
     config.OMX_FILT_CUT, True
 )
 pitchrate_pid = PID_controller(
     config.PITCHRATE_KP, config.PITCHRATE_KI, config.PITCHRATE_KD, config.PITCHRATE_KFF,
-    config.PITCHRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.PITCHRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
     config.OMY_FILT_CUT, True
 )
 yawrate_pid = PID_controller(
     config.YAWRATE_KP, config.YAWRATE_KI, config.YAWRATE_KD, config.YAWRATE_KFF,
-    config.YAWRATE_INTEGRATION_LIMIT, 1 / freq_attitude_rate, freq_attitude_rate,
+    config.YAWRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
     config.OMZ_FILT_CUT, True, 32767.0
 )
 
 # Instantiate the open loop model
-# flapper_model = FlapperModel(freq_attitude)
+Flapper = FlapperModel(1 / config.FREQ_ATTITUDE, config.MMOI_WITH_WINGS_XY, config.MASS_WINGS, config.MODEL_COEFFS, 
+                       config.THRUST_COEFFS, config.FLAPPER_DIMS, config.TF_COEFFS, config.MAX_PWM, config.MID_PWM, config.MIN_PWM, 
+                       config.MAX_ACT_STATE)
 
 def capAngle(angle):
     result = angle
@@ -215,8 +216,9 @@ if __name__ == "__main__":
     start = time()
 
     # Declare data file paths
-    data = load_data(config.PLATFORM)
+    data = load_data(config.PLATFORM).iloc[:int(10e3), :]
 
+    
     # Load onboard data
     if config.USE_OPEN_LOOP:
         print("[bold red]I'm still implementing this feature![/bold red]")
@@ -228,7 +230,7 @@ if __name__ == "__main__":
 
     print("[bold green]Starting the simulation[/bold green]")
     for i in track(range(len(data)), description="Processing..."):
-        simulate_flapper(data, i, 1 / freq_attitude, config.USE_OPEN_LOOP)
+        simulate_flapper(data, i, 1 / config.FREQ_ATTITUDE, config.USE_OPEN_LOOP)
 
     end = time()
 
