@@ -1,4 +1,5 @@
 PLATFORM = 'flapper'
+USE_OPEN_LOOP = False
 
 # Attitude PID definitions
 ROLL_KP = 10
@@ -41,3 +42,26 @@ YAWRATE_KFF = 220
 OMZ_FILT_CUT = 5
 YAWRATE_INTEGRATION_LIMIT = 166.7
 YAW_MAX_DELTA = 30.0
+
+
+# mass moments of inertia
+MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 3.6e-4}  # kg/m^2
+
+MMOI_WITH_WINGS_XY = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 2.8e-4}  # kg/m^2 # with wings oriented in XY plane
+
+MMOI_NO_WINGS = {"Ixx": 3.1e-4, "Iyy": 3.0e-4, "Izz": 2.7e-4}  # kg/m^2
+
+M_WINGS = 0.1026  # kg
+
+M_NO_WINGS = 0.0943  # kg
+
+# Transfer function values
+TAU_FLAPPING = 0.0796
+
+OMEGA_DIHEDRAL = 40
+
+ZETA_DIHEDRAL = 0.634
+
+OMEGA_YAW = None
+
+ZETA_YAW = None

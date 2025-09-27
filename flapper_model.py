@@ -1,4 +1,3 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 from time import time
 from scipy.spatial.transform import Rotation as R
@@ -17,18 +16,13 @@ from utils.data_loader import load_data
 
 show = True
 flight_exp = "flight_001"
-use_open_loop = False
 
 
 # Choose frequency to run the controllers
-if use_open_loop:
-    freq_attitude = 500  # Hz
-    freq_attitude_rate = 500  # Hz
-    prefix_data = "onboard."
-else:
-    freq_attitude = 500  # Hz
-    freq_attitude_rate = 500  # Hz
-    prefix_data = ""
+
+freq_attitude = 500  # Hz
+freq_attitude_rate = 500  # Hz
+prefix_data = ""
 
 
 # -----------------------------------------------------------
@@ -224,7 +218,7 @@ if __name__ == "__main__":
     data = load_data(config.PLATFORM)
 
     # Load onboard data
-    if use_open_loop:
+    if config.USE_OPEN_LOOP:
         print("[bold red]I'm still implementing this feature![/bold red]")
         exit()
     else:
@@ -234,7 +228,7 @@ if __name__ == "__main__":
 
     print("[bold green]Starting the simulation[/bold green]")
     for i in track(range(len(data)), description="Processing..."):
-        simulate_flapper(data, i, 1 / freq_attitude, use_open_loop)
+        simulate_flapper(data, i, 1 / freq_attitude, config.USE_OPEN_LOOP)
 
     end = time()
 
