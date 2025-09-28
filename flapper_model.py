@@ -18,9 +18,6 @@ show = True
 flight_exp = "flight_001"
 
 
-# Choose frequency to run the controllers
-
-
 prefix_data = ""
 
 
@@ -198,7 +195,7 @@ def simulate_flapper(data, i, dt, use_model : bool):
         attitude = state_estimation(rates, acc, dt)
     
 
-    setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
+    setpoints = {"roll": 0*data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": 0*data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
     cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
 
     # Run the PID cascade
@@ -236,10 +233,8 @@ if __name__ == "__main__":
     # Load onboard data
     if config.USE_OPEN_LOOP:
         print("[bold thistle1]Running the modeled open loop.[/bold thistle1]")
-        # exit()
     else:
         print("[bold thistle1]Running the controllers with the recorded data, here no open loop models are run. The data recorded from the IMU gets fed back to the controllers. [/bold thistle1]")
-        
     
 
     print("[bold green]Starting the simulation[/bold green]")

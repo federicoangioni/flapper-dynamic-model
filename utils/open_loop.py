@@ -18,6 +18,10 @@ class FlapperModel:
         self.c1 = thrust_coeffs['c1']
         self.c2 = thrust_coeffs['c2']
 
+        self.k_xu, self.k_yv, self.k_zw, self.k_N = model_coeffs['k_xu'], model_coeffs['k_yv'], model_coeffs['k_zw'], model_coeffs['k_N']
+
+        self.lw, self.lz, self.lk, self.ly, self.R = flapper_dims['lw'], flapper_dims['lz'], flapper_dims['lk'], flapper_dims['ly'], flapper_dims['R']
+
         self.flapping_max, self.dihedral_max, self.yaw_max = max_act_state["flapping_max"], max_act_state["dihedral_max"], max_act_state["yaw_max"]
 
         self.max_pwm_m1, self.max_pwm_m2, self.max_pwm_m3, self.max_pwm_m4 =  max_pwm["m1"], max_pwm["m2"], max_pwm["m3"], max_pwm["m4"]
@@ -47,13 +51,22 @@ class FlapperModel:
         p, q, r = self.flapper_state["p"], self.flapper_state["q"], self.flapper_state["r"]
         phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
+        ld = self.lw * np.cos(dihedral)
 
-        X = 0
-        Y = 0
-        Z = 0
-        L = 0
-        M = 0
-        N = 0
+        ld_dot = 0 # np.gradient(ld)
+
+        alpha_L = (- self.lw * np.sin(dihedral) + self.ly*np.sin(yaw_angle)) / self.lk
+        alpha_R = (- self.lw * np.sin(dihedral) - self.ly*np.sin(yaw_angle)) / self.lk
+
+        Z_L = freq_left  * (w - self.lw*np.sin(dihedral) * q + self.lw * np.cos(dihedral) * p)
+        Z_R = freq_right * (w - self.lw*np.sin(dihedral) * q - self.lw * np.cos(dihedral) * p)
+
+        X = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) - thrust_left * np.sin(alpha_L) - thrust_right * np.sin(alpha_R)
+        Y = - self.k_yv * (freq_left + freq_right) * (v + self.lz * p)
+        Z = - self.k_zw * (Z_L + Z_R) - (thrust_right*np.cos(alpha_R) + thrust_left * np.cos(alpha_L))
+        L = - self.k_zw * (Z_L - Z_R) * self.lw * np.cos(dihedral) + Y * self.lz + self.lw*np.cos(dihedral)*(thrust_left*np.cos(alpha_L) - thrust_right*np.cos(alpha_R))
+        M = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) * self.lz + (thrust_left * np.sin(alpha_L) + thrust_right * np.sin(alpha_R)) * self.lz - self.k_zw*(Z_L + Z_R) * ld + (thrust_right * np.cos(alpha_R) + thrust_left * np.cos(alpha_L))*self.lw*np.sin(dihedral)
+        N = -self.k_N * ((freq_left + freq_right) * self.R * r + (freq_left - freq_right)*u + (freq_left + freq_right) * dihedral*v) + self.lw * np.cos(dihedral)*(thrust_right * np.sin(alpha_R) - thrust_left * np.cos(alpha_L))
 
         # Newton-Euler equations of motion from 'A Mathematical Introduction to Robotic Manipulation'
         u_dot = -(w * q - v * r) + X / self.m + g0 * np.sin(theta)
