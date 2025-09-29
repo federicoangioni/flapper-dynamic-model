@@ -50,6 +50,7 @@ def power_distribution(controls,):
 
     motors_m1_uncapped = pitch_neutral * uint_16 / 100 + pitch_ampl * controls["pitch"]
     motors_m3_uncapped = yaw_neutral * uint_16 / 100 - controls["yaw"]
+
     motors_m2_uncapped = 0.5 * controls["roll"] + thrust * (1.0 + roll_bias / 100)
     motors_m4_uncapped = -0.5 * controls["roll"] + thrust * (1.0 - roll_bias / 100)
 

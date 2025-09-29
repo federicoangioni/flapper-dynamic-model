@@ -20,7 +20,7 @@ class FlapperModel:
 
         self.k_xu, self.k_yv, self.k_zw, self.k_N = model_coeffs['k_xu'], model_coeffs['k_yv'], model_coeffs['k_zw'], model_coeffs['k_N']
 
-        self.lw, self.lz, self.lk, self.ly, self.R = flapper_dims['lw'], flapper_dims['lz'], flapper_dims['lk'], flapper_dims['ly'], flapper_dims['R']
+        self.lw, self.lz, self.lk, self.ly, self.R, self.l_hinge = flapper_dims['lw'], flapper_dims['lz'], flapper_dims['lk'], flapper_dims['ly'], flapper_dims['R'], flapper_dims['l_hinge']
 
         self.flapping_max, self.dihedral_max, self.yaw_max = max_act_state["flapping_max"], max_act_state["dihedral_max"], max_act_state["yaw_max"]
 
@@ -43,7 +43,8 @@ class FlapperModel:
     def calculate_accelerations(self, pwm_signals):
 
         dihedral, freq_left, yaw_angle, freq_right = self.compute_control_states(pwm_signals['m1'], pwm_signals['m2'], pwm_signals['m3'], pwm_signals['m4'])
-
+    
+    
         thrust_left = self.compute_thrust(freq_left)
         thrust_right = self.compute_thrust(freq_right)
 
@@ -51,47 +52,55 @@ class FlapperModel:
         p, q, r = self.flapper_state["p"], self.flapper_state["q"], self.flapper_state["r"]
         phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
-        ld = self.lw * np.cos(dihedral)
+        ld = self.lw * np.sin(dihedral)
 
         ld_dot = 0 # np.gradient(ld)
 
-        alpha_L = (- self.lw * np.sin(dihedral) + self.ly*np.sin(yaw_angle)) / self.lk
-        alpha_R = (- self.lw * np.sin(dihedral) - self.ly*np.sin(yaw_angle)) / self.lk
-
+        alpha_L = np.round(np.arcsin((- self.l_hinge * np.sin(dihedral) + self.ly*np.sin(yaw_angle)) / self.lk), 7)
+        alpha_R = np.round(np.arcsin((- self.l_hinge * np.sin(dihedral) - self.ly*np.sin(yaw_angle)) / self.lk), 7)
 
         # Full model
 
-        Z_L = freq_left  * (w - self.lw*np.sin(dihedral) * q + self.lw * np.cos(dihedral) * p)
-        Z_R = freq_right * (w - self.lw*np.sin(dihedral) * q - self.lw * np.cos(dihedral) * p)
+        # Z_L = freq_left  * (w - ld* q + self.lw * np.cos(dihedral) * p)
+        # Z_R = freq_right * (w - ld * q - self.lw * np.cos(dihedral) * p)
+
+        # X = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) - thrust_left * np.sin(alpha_L) - thrust_right * np.sin(alpha_R)
+        # Y = - self.k_yv * (freq_left + freq_right) * (v + self.lz * p)
+        # Z = - self.k_zw * (Z_L + Z_R) - (thrust_right*np.cos(alpha_R) + thrust_left * np.cos(alpha_L))
+        # L = - self.k_zw * (Z_L - Z_R) * self.lw * np.cos(dihedral) + Y * self.lz + self.lw*np.cos(dihedral)*(thrust_left*np.cos(alpha_L) - thrust_right*np.cos(alpha_R))
+        # M = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) * self.lz + (thrust_left * np.sin(alpha_L) + thrust_right * np.sin(alpha_R)) * self.lz + self.k_zw*(Z_L + Z_R) * ld + (thrust_right * np.cos(alpha_R) + thrust_left * np.cos(alpha_L))*ld
+        # N = -self.k_N * ((freq_left + freq_right) * self.R * r + (freq_left - freq_right)*u + (freq_left + freq_right) * dihedral*v) + self.lw * np.cos(dihedral)*(thrust_right * np.sin(alpha_R) - thrust_left * np.cos(alpha_L))
+
+        
+
+        Z_L = freq_left  * (w - ld* q + self.lw * np.cos(dihedral) * p)
+        Z_R = freq_right * (w - ld* q - self.lw * np.cos(dihedral) * p)
+
 
         X = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) - thrust_left * np.sin(alpha_L) - thrust_right * np.sin(alpha_R)
-        Y = - self.k_yv * (freq_left + freq_right) * (v + self.lz * p)
+        Y = - self.k_yv * (freq_left + freq_right) * (v + self.lz * p) 
         Z = - self.k_zw * (Z_L + Z_R) - (thrust_right*np.cos(alpha_R) + thrust_left * np.cos(alpha_L))
-        L = - self.k_zw * (Z_L - Z_R) * self.lw * np.cos(dihedral) + Y * self.lz + self.lw*np.cos(dihedral)*(thrust_left*np.cos(alpha_L) - thrust_right*np.cos(alpha_R))
-        M = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) * self.lz + (thrust_left * np.sin(alpha_L) + thrust_right * np.sin(alpha_R)) * self.lz - self.k_zw*(Z_L + Z_R) * ld + (thrust_right * np.cos(alpha_R) + thrust_left * np.cos(alpha_L))*self.lw*np.sin(dihedral)
-        N = -self.k_N * ((freq_left + freq_right) * self.R * r + (freq_left - freq_right)*u + (freq_left + freq_right) * dihedral*v) + self.lw * np.cos(dihedral)*(thrust_right * np.sin(alpha_R) - thrust_left * np.cos(alpha_L))
 
-        # Z_L = freq_left  * (w - self.lw*np.sin(dihedral) * q)
-        # Z_R = freq_right * (w - self.lw*np.sin(dihedral) * q)
-
-        # X = - self.k_xu / 2 * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot)
-        # Y = 0
-        # Z = - self.k_zw * (Z_L + Z_R) / 2 - (thrust_right + thrust_left)
-        # L = 0
-        # M = X * self.lz + ld * self.k_zw * (Z_L + Z_R) / 2 - (thrust_right + thrust_left) * ld
-        # N = 0 
+        L = (
+                    (self.k_zw * (Z_L - Z_R) * self.lw * np.cos(dihedral))
+                    + (Y * self.lz)
+                    + (self.lw * np.cos(dihedral) * (thrust_left - thrust_right))
+                )
         
+        M = X * self.lz + ld * self.k_zw * (Z_L + Z_R) + (thrust_right * np.cos(alpha_R) + thrust_left * np.cos(alpha_L)) * ld + (thrust_left * np.sin(alpha_L) + thrust_right * np.sin(alpha_R)) * self.lz 
+
+        N = - self.k_N * ((freq_left + freq_right) * self.R * r + (freq_left - freq_right)*u + (freq_left + freq_right) * dihedral*v) # + self.lw * np.cos(dihedral)*(thrust_right * np.sin(alpha_R) - thrust_left * np.cos(alpha_L))
+
         # Newton-Euler equations of motion from 'A Mathematical Introduction to Robotic Manipulation'
         u_dot = -(w * q - v * r) + X / self.m + g0 * np.sin(theta)
         v_dot = -(u * r - w * p) + Y / self.m - g0 * np.cos(theta) * np.sin(phi)
         w_dot = -(v * p - u * q) + Z / self.m - g0 * np.cos(theta) * np.cos(phi)
         p_dot = ((self.Iyy - self.Izz) * q * r + L) / self.Ixx
         q_dot = ((self.Izz - self.Ixx) * p * r + M) / self.Iyy
-        r_dot = ((self.Ixx - self.Iyy) * q * q + N) / self.Izz
-
+        r_dot = ((self.Ixx - self.Iyy) * p * q + N) / self.Izz
         accelerations = {"u_dot": u_dot, "v_dot": v_dot, "w_dot": w_dot, "p_dot": p_dot, "q_dot": q_dot, "r_dot": r_dot}
 
-        return accelerations
+        return accelerations, freq_left
 
     def compute_thrust(self, f):
         return self.c1 * f + self.c2
@@ -99,7 +108,7 @@ class FlapperModel:
     def update(self, pwm_signals):
         phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
-        accelerations = self.calculate_accelerations(pwm_signals)
+        accelerations, freq_left = self.calculate_accelerations(pwm_signals)
 
         # Here integrate the values obtined from the equations of motion
         self.flapper_state["u"] += accelerations["u_dot"] * self.dt
@@ -121,7 +130,7 @@ class FlapperModel:
 
         attitude = [float(self.flapper_state['phi']), float(self.flapper_state['theta']), float(self.flapper_state['r'])]
 
-        return attitude, rates
+        return attitude, rates, freq_left
 
     
     def init_state_space(self, tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw):
@@ -192,24 +201,23 @@ class FlapperModel:
 
     def pwm_to_angle(self, pwm_m1, pwm_m2, pwm_m3, pwm_m4): 
 
-        dihedral_control = self.compute_control_inputs(pwm_m1, self.min_pwm_m1, 0, self.max_pwm_m1, self.dihedral_max)
+        dihedral_control = self.compute_control_inputs(pwm_m1, self.min_pwm_m1, self.mid_pwm_m1, self.max_pwm_m1, self.dihedral_max)
 
-        freq_left_control = self.compute_control_inputs(pwm_m2, self.min_pwm_m2, 0 , self.max_pwm_m2, self.flapping_max)
+        freq_left_control = self.compute_control_inputs(pwm_m2, self.min_pwm_m2, self.mid_pwm_m2, self.max_pwm_m2, self.flapping_max)
 
-        yaw_control = self.compute_control_inputs(pwm_m3, self.min_pwm_m3, 0, self.max_pwm_m3, self.yaw_max)
+        yaw_control = self.compute_control_inputs(pwm_m3, self.min_pwm_m3, self.mid_pwm_m3, self.max_pwm_m3, self.yaw_max)
 
-        freq_right_control = self.compute_control_inputs(pwm_m4, self.min_pwm_m4, 0, self.max_pwm_m4, self.flapping_max)
+        freq_right_control = self.compute_control_inputs(pwm_m4, self.min_pwm_m4, self.mid_pwm_m4, self.max_pwm_m4, self.flapping_max)
 
         return dihedral_control, freq_left_control, yaw_control, freq_right_control
     
     def compute_control_inputs(self, pwm, min_pwm, mid_pwm, max_pwm, max_state):
         if pwm >= mid_pwm:
-            state_value = (pwm - mid_pwm) / (max_pwm - mid_pwm) * max_state
+            state_value = abs((pwm - mid_pwm) / (max_pwm - mid_pwm) * max_state)
         else:
-            state_value = (pwm - mid_pwm) / (mid_pwm - min_pwm) * max_state
+            state_value = abs((pwm - mid_pwm) / (mid_pwm - min_pwm) * max_state)
         
         state_value = max(-max_state, min(state_value, max_state))
-        
         return state_value
     
     def step_system(self, x, ss, u, dt):

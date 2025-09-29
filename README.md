@@ -66,3 +66,9 @@ experiment###
 │   ├── TIME
 │   ├── Averages and stds (for all *_interp signals)
 ```
+
+
+negative pitch -> positive pwm 
+negative pitch -> negative dihedral
+
+above 36000 pwm pitch servo -> dihedral is negative, drone goes forward

@@ -52,14 +52,17 @@ YAW_MAX_DELTA = 30.0
 
 
 # Mass moments of inertia
-MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 3.6e-4}  # kg/m^2
+
+MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 3.6e-4}  # kg/m^2 # Flapper
 
 MMOI_WITH_WINGS_XY = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 2.8e-4}  # kg/m^2 # with wings oriented in XY plane
 
 MMOI_NO_WINGS = {"Ixx": 3.1e-4, "Iyy": 3.0e-4, "Izz": 2.7e-4}  # kg/m^2
 
 # Mass
-MASS_WINGS = 0.1026  # kg
+
+
+MASS_WINGS = 0.103 # kg # Flapper
 
 MASS_NO_WINGS = 0.0943  # kg
 
@@ -81,28 +84,37 @@ MAXTHRUST_PWM = 60000
 
 ROLLBIAS = 0
 
-PITCH_SERVO_NEUTRAL = 55
+PITCH_SERVO_NEUTRAL = 60
 
-YAW_SERVO_NEUTRAL = 60
+YAW_SERVO_NEUTRAL = 50
 
 MIN_PWM = {'m1' : 0, 'm2': 0, 'm3': 0, 'm4': 0}
 
 # Dihedral and yaw maximum angle estimated from pictures
-MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(20), 'flapping_max': 20, 'yaw_max':  np.tan(2/3)}
+MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(18), 'flapping_max': 35, 'yaw_max':  0.786842889}
 
 # Dynamic model specifics
 
-THRUST_COEFFS = {'c1': 0.0114, 'c2': -0.0449}
+THRUST_COEFFS = {'c1': 0.08, 'c2': -0.02} # Flapper +
 
-MODEL_COEFFS = {'k_xu': 4.12e-3, 'k_yv': 1.8, 'k_zw': 9.16e-4, 'k_N':1}
+MODEL_COEFFS = {'k_xu': 4.12, 'k_yv': 1.8, 'k_zw': 1.8e-1, 'k_N': 2.7e-3}
 
-FLAPPER_DIMS = {'lw' : 0.05, 'ly': 0.03, 'lk': 0.1, 'R':0.2, 'lz' : 0.027}
+FLAPPER_DIMS = {'lw' : 0.08, 'ly': 0.036, 'lk': 0.1, 'R':0.098, 'lz' : 0.027, 'l_hinge': 0.035}
 
 # Assembling necessary dictionaries
 TF_COEFFS = {'tau_flapping': TAU_FLAPPING, 'omega_dihedral': OMEGA_DIHEDRAL, 'zeta_dihedral': ZETA_DIHEDRAL, 'omega_yaw': OMEGA_YAW, 'zeta_yaw': ZETA_YAW}
 
-MAX_PWM = {'m1' : MAXTHRUST_PWM, 'm2': UINT_16B, 'm3': MAXTHRUST_PWM, 'm4': UINT_16B}
+MAX_PWM = {'m1' : UINT_16B, 'm2':  MAXTHRUST_PWM, 'm3': UINT_16B, 'm4': MAXTHRUST_PWM}
 
 FLAPPERCONFIG = {"pitchServoNeutral": PITCH_SERVO_NEUTRAL, "yawServoNeutral": YAW_SERVO_NEUTRAL, "rollBias": ROLLBIAS, "maxThrust": MAXTHRUST_PWM}
 
-MID_PWM = {'m1': PITCH_SERVO_NEUTRAL * MAX_PWM['m1'], 'm2' : 0, 'm3': YAW_SERVO_NEUTRAL * MAX_PWM['m3'], 'm4': 0}
+MID_PWM = {'m1': PITCH_SERVO_NEUTRAL * MAX_PWM['m1'] / 100, 'm2' : 0, 'm3': YAW_SERVO_NEUTRAL * MAX_PWM['m3'] / 100, 'm4': 0}
+
+
+'''
+
+# THRUST_COEFFS = {'c1': 0.0114, 'c2': -0.0449} # Nimble
+# 
+# MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 1e-4, "Izz": 3.6e-4}  # kg/m^2 # Nimble
+# MASS_WINGS = 0.026  # kg # Nimble
+# '''

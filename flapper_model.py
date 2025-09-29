@@ -16,7 +16,7 @@ from utils.data_loader import load_data
 
 
 show = True
-flight_exp = "flight_001"
+flight_exp = "flight_002"
 
 
 prefix_data = ""
@@ -32,6 +32,8 @@ cmd_yaw = []
 phi = []
 theta = []
 psi = []
+freqs = []
+
 
 # Handle YAW rate controllers
 yawrate_sp = []
@@ -41,7 +43,7 @@ attitude_measured = {"roll": 0, "pitch": 0, "yaw": 0}
 attitude_desired = {"roll": 0, "pitch": 0, "yaw": 0}
 attituderate_desired = {"rollrate": 0, "pitchrate": 0, "yawrate": 0}
 controls = {"thrust": 0, "roll": 0, "pitch": 0, "yaw": 0}
-motors_list = {"m1": [36044], "m2": [0], "m3": [42597], "m4": [0]}
+motors_list = {"m1": [config.MID_PWM['m1']], "m2": [0], "m3": [config.MID_PWM['m3']], "m4": [0]}
 
 # Instantiate the sensor fusion filter
 sensfusion = MahonyIMU()
@@ -174,7 +176,7 @@ def controller_pid(attitude, rates, setpoints, dt_imu, yaw_max_delta, yaw_mode="
     return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
 
-def simulate_flapper(data, i, dt, use_model : bool):
+def simulate_flapper(dt, setpoints, cmd_thrust, use_model : bool, data = None, i = None,):
 
     if use_model:
         # Use previous motor command
@@ -182,13 +184,15 @@ def simulate_flapper(data, i, dt, use_model : bool):
         pwm_m2 = motors_list["m2"][-1]
         pwm_m3 = motors_list["m3"][-1]
         pwm_m4 = motors_list["m4"][-1]
+
         pwm_signals = {'m1': pwm_m1, 'm2':pwm_m2, 'm3':pwm_m3, 'm4':pwm_m4}
 
-        attitude, rates = Flapper.update(pwm_signals)
+        attitude, rates, freq_left = Flapper.update(pwm_signals)
 
-        phi.append(attitude[0])
-        theta.append(attitude[1])
-        psi.append(attitude[2])
+        rates = np.degrees(rates[0]), np.degrees(rates[1]), np.degrees(rates[2])
+        attitude = np.degrees(attitude[0]), np.degrees(attitude[1]), np.degrees(attitude[2])
+        
+
     else:
         # Fetch data from onboard (unprocessed, for now) .csv
         rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
@@ -197,26 +201,23 @@ def simulate_flapper(data, i, dt, use_model : bool):
         # Calculate estimated attitude through Mahony filter
         attitude = state_estimation(rates, acc, dt)
     
+    phi.append(attitude[0])
+    theta.append(attitude[1])
+    psi.append(attitude[2])
 
-    setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
-    # setpoints = {"roll": 0, "pitch": -15, "yaw": 0, "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
-
-    cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
-
-    # Run the PID cascade
+    # Run the PID cascade, input to this must be in degrees
     cmd_roll_i, cmd_pitch_i, cmd_yaw_i = controller_pid(attitude, rates, setpoints, dt, config.YAW_MAX_DELTA, yaw_mode="manual")
-
     controls["thrust"] = cmd_thrust
     controls["pitch"] = cmd_pitch_i
     controls["roll"] = cmd_roll_i
     controls["yaw"] = -cmd_yaw_i
-    
-    motors = power_distribution(controls)
 
+    motors = power_distribution(controls)
     # For now save only the cmd outputs and the relative motor outputss
     cmd_roll.append(cmd_roll_i)
     cmd_pitch.append(cmd_pitch_i)
     cmd_yaw.append(-cmd_yaw_i)
+
     motors_list["m1"].append(motors["m1"])
     motors_list["m2"].append(motors["m2"])
     motors_list["m3"].append(motors["m3"])
@@ -233,9 +234,7 @@ if __name__ == "__main__":
 
     # Declare data file paths
     data = load_data(config.PLATFORM)
-
-    processed = pd.read_csv("data/flapper/flight_001/flight_001_processed.csv")
-    
+   
     # Load onboard data
     if config.USE_OPEN_LOOP:
         print("[bold thistle1]Running the modeled open loop.[/bold thistle1]")
@@ -244,8 +243,21 @@ if __name__ == "__main__":
     
 
     print("[bold green]Starting the simulation[/bold green]")
-    for i in track(range(len(data)), description="Processing..."):
-        simulate_flapper(data, i, 1 / config.FREQ_ATTITUDE, config.USE_OPEN_LOOP)
+
+    if config.USE_OPEN_LOOP:
+        for i in track(range(len(data)), description="Processing..."):
+            setpoints = {"roll": 0, "pitch": 40, "yaw": 0, "yawrate": 0}
+
+            cmd_thrust = 23000 
+            
+            simulate_flapper(1 / config.FREQ_ATTITUDE, setpoints, cmd_thrust, config.USE_OPEN_LOOP,)
+
+    else:
+        for i in track(range(len(data)), description="Processing..."):
+            setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
+
+            cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
+            simulate_flapper(1 / config.FREQ_ATTITUDE, setpoints, cmd_thrust, config.USE_OPEN_LOOP, data, i)
 
     end = time()
 
@@ -255,7 +267,7 @@ if __name__ == "__main__":
         print("Showing the outputs in plots")
 
         # First figure
-        fig1, axs1 = plt.subplots(nrows=3, ncols=1)
+        fig1, axs1 = plt.subplots(nrows=4, ncols=1)
 
         axs1[0].set_title("Pitch angle command from rate PID")
         axs1[0].plot(cmd_pitch, label="simulated")
@@ -271,6 +283,10 @@ if __name__ == "__main__":
         axs1[2].plot(data[f"{prefix_data}controller.cmd_yaw"], alpha=0.5)
         axs1[2].set_ylabel("time (s)")
         axs1[2].set_ylim(-32767, 32767)
+
+        axs1[3].set_title("CMD thrust directly from controller")
+        axs1[3].plot(data[f"{prefix_data}controller.cmd_thrust"], alpha=0.5)
+        axs1[3].set_ylabel("time (s)")
 
         plt.tight_layout()
 
@@ -297,18 +313,26 @@ if __name__ == "__main__":
 
         # Third figure, plot angles, rates and velocities
         fig3, axs3 = plt.subplots(nrows=4, ncols=1)
+
         axs3[0].set_title("Pitch")
+
         axs3[0].plot(theta, label="simulated")
-        axs3[0].plot(np.degrees(processed["onboard.pitch"]), label="recorded")
+
+        #axs3[0].plot(np.degrees(processed["onboard.pitch"]), label="recorded")
+        axs3[0].set_ylim(-20, 20)
         axs3[0].legend()
 
         axs3[1].set_title("Roll")
-        axs3[1].plot(np.degrees(processed["onboard.roll"]))
+        # axs3[1].plot(np.degrees(processed["onboard.roll"]))
         axs3[1].plot(phi)
 
         axs3[2].set_title("Yaw")
-        axs3[2].plot(np.degrees(processed["onboard.yaw"]))
+        axs3[2].plot()
         axs3[2].plot(psi)
+
+        axs3[3].set_title("Freq left")
+        axs3[3].plot()
+        axs3[3].plot(freqs)
 
         plt.tight_layout()
         plt.show()
