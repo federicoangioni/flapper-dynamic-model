@@ -94,9 +94,9 @@ MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(20), 'flapping_max': 20, 'yaw_max':
 
 THRUST_COEFFS = {'c1': 0.0114, 'c2': -0.0449}
 
-MODEL_COEFFS = {'k_xu': 4.12e-2, 'k_yv': 1.8e-2, 'k_zw': 4e-2, 'k_N':0.02}
+MODEL_COEFFS = {'k_xu': 4.12e-3, 'k_yv': 1.8, 'k_zw': 9.16e-4, 'k_N':1}
 
-FLAPPER_DIMS = {'lw' : 0.05, 'ly': 0.03, 'lk': 0.1, 'R':0.2, 'lz' : 0.02}
+FLAPPER_DIMS = {'lw' : 0.05, 'ly': 0.03, 'lk': 0.1, 'R':0.2, 'lz' : 0.027}
 
 # Assembling necessary dictionaries
 TF_COEFFS = {'tau_flapping': TAU_FLAPPING, 'omega_dihedral': OMEGA_DIHEDRAL, 'zeta_dihedral': ZETA_DIHEDRAL, 'omega_yaw': OMEGA_YAW, 'zeta_yaw': ZETA_YAW}

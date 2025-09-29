@@ -58,6 +58,9 @@ class FlapperModel:
         alpha_L = (- self.lw * np.sin(dihedral) + self.ly*np.sin(yaw_angle)) / self.lk
         alpha_R = (- self.lw * np.sin(dihedral) - self.ly*np.sin(yaw_angle)) / self.lk
 
+
+        # Full model
+
         Z_L = freq_left  * (w - self.lw*np.sin(dihedral) * q + self.lw * np.cos(dihedral) * p)
         Z_R = freq_right * (w - self.lw*np.sin(dihedral) * q - self.lw * np.cos(dihedral) * p)
 
@@ -68,6 +71,16 @@ class FlapperModel:
         M = - self.k_xu * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot) * self.lz + (thrust_left * np.sin(alpha_L) + thrust_right * np.sin(alpha_R)) * self.lz - self.k_zw*(Z_L + Z_R) * ld + (thrust_right * np.cos(alpha_R) + thrust_left * np.cos(alpha_L))*self.lw*np.sin(dihedral)
         N = -self.k_N * ((freq_left + freq_right) * self.R * r + (freq_left - freq_right)*u + (freq_left + freq_right) * dihedral*v) + self.lw * np.cos(dihedral)*(thrust_right * np.sin(alpha_R) - thrust_left * np.cos(alpha_L))
 
+        # Z_L = freq_left  * (w - self.lw*np.sin(dihedral) * q)
+        # Z_R = freq_right * (w - self.lw*np.sin(dihedral) * q)
+
+        # X = - self.k_xu / 2 * (freq_left + freq_right) * (u - self.lz * q + self.lw * ld_dot)
+        # Y = 0
+        # Z = - self.k_zw * (Z_L + Z_R) / 2 - (thrust_right + thrust_left)
+        # L = 0
+        # M = X * self.lz + ld * self.k_zw * (Z_L + Z_R) / 2 - (thrust_right + thrust_left) * ld
+        # N = 0 
+        
         # Newton-Euler equations of motion from 'A Mathematical Introduction to Robotic Manipulation'
         u_dot = -(w * q - v * r) + X / self.m + g0 * np.sin(theta)
         v_dot = -(u * r - w * p) + Y / self.m - g0 * np.cos(theta) * np.sin(phi)

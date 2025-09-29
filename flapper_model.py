@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 import numpy as np
 from rich import print
 from rich.progress import track
+import pandas as pd
 
 # Local imports
 import utils.config as config
@@ -26,6 +27,11 @@ prefix_data = ""
 cmd_roll = []
 cmd_pitch = []
 cmd_yaw = []
+
+# Output of the model
+phi = []
+theta = []
+psi = []
 
 # Handle YAW rate controllers
 yawrate_sp = []
@@ -180,12 +186,9 @@ def simulate_flapper(data, i, dt, use_model : bool):
 
         attitude, rates = Flapper.update(pwm_signals)
 
-
-        '''
-        we need to output the rates
-
-        for visualisations, use position and angle
-        '''
+        phi.append(attitude[0])
+        theta.append(attitude[1])
+        psi.append(attitude[2])
     else:
         # Fetch data from onboard (unprocessed, for now) .csv
         rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
@@ -195,7 +198,9 @@ def simulate_flapper(data, i, dt, use_model : bool):
         attitude = state_estimation(rates, acc, dt)
     
 
-    setpoints = {"roll": 0*data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": 0*data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
+    setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
+    # setpoints = {"roll": 0, "pitch": -15, "yaw": 0, "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
+
     cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
 
     # Run the PID cascade
@@ -229,6 +234,7 @@ if __name__ == "__main__":
     # Declare data file paths
     data = load_data(config.PLATFORM)
 
+    processed = pd.read_csv("data/flapper/flight_001/flight_001_processed.csv")
     
     # Load onboard data
     if config.USE_OPEN_LOOP:
@@ -290,11 +296,19 @@ if __name__ == "__main__":
         plt.tight_layout()
 
         # Third figure, plot angles, rates and velocities
-        # fig3, axs3 = plt.subplots(nrows=4, ncols=4)
-        
-        # axs3[0, 0].plot(data[f"{prefix_data}pitch"])
+        fig3, axs3 = plt.subplots(nrows=4, ncols=1)
+        axs3[0].set_title("Pitch")
+        axs3[0].plot(theta, label="simulated")
+        axs3[0].plot(np.degrees(processed["onboard.pitch"]), label="recorded")
+        axs3[0].legend()
+
+        axs3[1].set_title("Roll")
+        axs3[1].plot(np.degrees(processed["onboard.roll"]))
+        axs3[1].plot(phi)
+
+        axs3[2].set_title("Yaw")
+        axs3[2].plot(np.degrees(processed["onboard.yaw"]))
+        axs3[2].plot(psi)
 
         plt.tight_layout()
-
-
         plt.show()
