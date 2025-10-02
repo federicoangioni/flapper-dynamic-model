@@ -50,7 +50,7 @@ class FlapperModel:
 
         u, v, w = self.flapper_state["u"], self.flapper_state["v"], self.flapper_state["w"]
         p, q, r = self.flapper_state["p"], self.flapper_state["q"], self.flapper_state["r"]
-        phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
+        phi, theta, _ = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
         ld = self.lw * np.sin(dihedral)
 
@@ -100,15 +100,15 @@ class FlapperModel:
         r_dot = ((self.Ixx - self.Iyy) * p * q + N) / self.Izz
         accelerations = {"u_dot": u_dot, "v_dot": v_dot, "w_dot": w_dot, "p_dot": p_dot, "q_dot": q_dot, "r_dot": r_dot}
 
-        return accelerations, freq_left
+        return accelerations, dihedral, freq_left, yaw_angle, freq_right
 
     def compute_thrust(self, f):
         return self.c1 * f + self.c2
 
     def update(self, pwm_signals):
-        phi, theta, psi = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
+        phi, theta, _ = self.flapper_state["phi"], self.flapper_state["theta"], self.flapper_state["psi"]
 
-        accelerations, freq_left = self.calculate_accelerations(pwm_signals)
+        accelerations,  dihedral, freq_left, yaw_angle, freq_right = self.calculate_accelerations(pwm_signals)
 
         # Here integrate the values obtined from the equations of motion
         self.flapper_state["u"] += accelerations["u_dot"] * self.dt
@@ -126,11 +126,16 @@ class FlapperModel:
         self.flapper_state["theta"] += theta_dot * self.dt
         self.flapper_state["psi"] += psi_dot * self.dt
 
-        rates =  [float(self.flapper_state['p']), float(self.flapper_state['q']), float(self.flapper_state['r'])]
+        rates =  np.array([float(self.flapper_state['p']), float(self.flapper_state['q']), float(self.flapper_state['r'])])
 
-        attitude = [float(self.flapper_state['phi']), float(self.flapper_state['theta']), float(self.flapper_state['r'])]
+        attitude = np.array([float(self.flapper_state['phi']), float(self.flapper_state['theta']), float(self.flapper_state['r'])])
 
-        return attitude, rates, freq_left
+        accelerations = np.array([float(accelerations["u_dot"]), float(accelerations["v_dot"]), float(accelerations["w_dot"])])
+
+        velocity = np.array([float(self.flapper_state['u']), float(self.flapper_state['v']), float(self.flapper_state['w'])])
+
+        # return whatever is needed
+        return attitude, rates, velocity, accelerations, dihedral
 
     
     def init_state_space(self, tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw):
