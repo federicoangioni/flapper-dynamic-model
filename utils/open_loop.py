@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import lti
+from . import config
 
 g0 = 9.80665  # m/s^2
 
@@ -128,6 +129,8 @@ class FlapperModel:
 
         rates =  np.array([float(self.flapper_state['p']), float(self.flapper_state['q']), float(self.flapper_state['r'])])
 
+        alphas =  np.array([float(accelerations['p_dot']), float(accelerations['q_dot']), float(accelerations['r_dot'])])
+
         attitude = np.array([float(self.flapper_state['phi']), float(self.flapper_state['theta']), float(self.flapper_state['r'])])
 
         accelerations = np.array([float(accelerations["u_dot"]), float(accelerations["v_dot"]), float(accelerations["w_dot"])])
@@ -135,7 +138,7 @@ class FlapperModel:
         velocity = np.array([float(self.flapper_state['u']), float(self.flapper_state['v']), float(self.flapper_state['w'])])
 
         # return whatever is needed
-        return attitude, rates, velocity, accelerations, dihedral
+        return attitude, rates, alphas, velocity, accelerations, dihedral, freq_left, yaw_angle, freq_right
 
     
     def init_state_space(self, tau_flapping, omega_dihedral, zeta_dihedral, omega_yaw, zeta_yaw):
@@ -208,11 +211,11 @@ class FlapperModel:
 
         dihedral_control = self.compute_control_inputs(pwm_m1, self.min_pwm_m1, self.mid_pwm_m1, self.max_pwm_m1, self.dihedral_max)
 
-        freq_left_control = self.compute_control_inputs(pwm_m2, self.min_pwm_m2, self.mid_pwm_m2, self.max_pwm_m2, self.flapping_max)
+        freq_left_control = config.PWM_TO_FREQ['m'] * pwm_m2 + config.PWM_TO_FREQ['c']
 
         yaw_control = self.compute_control_inputs(pwm_m3, self.min_pwm_m3, self.mid_pwm_m3, self.max_pwm_m3, self.yaw_max)
 
-        freq_right_control = self.compute_control_inputs(pwm_m4, self.min_pwm_m4, self.mid_pwm_m4, self.max_pwm_m4, self.flapping_max)
+        freq_right_control = config.PWM_TO_FREQ['m'] * pwm_m4 + config.PWM_TO_FREQ['c']
 
         return dihedral_control, freq_left_control, yaw_control, freq_right_control
     

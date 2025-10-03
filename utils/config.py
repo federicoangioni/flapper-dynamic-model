@@ -60,8 +60,6 @@ MMOI_WITH_WINGS_XY = {"Ixx": 5.6e-4, "Iyy": 3.4e-4, "Izz": 2.8e-4}  # kg/m^2 # w
 MMOI_NO_WINGS = {"Ixx": 3.1e-4, "Iyy": 3.0e-4, "Izz": 2.7e-4}  # kg/m^2
 
 # Mass
-
-
 MASS_WINGS = 0.103 # kg # Flapper
 
 MASS_NO_WINGS = 0.0943  # kg
@@ -84,9 +82,9 @@ MAXTHRUST_PWM = 60000
 
 ROLLBIAS = 0
 
-PITCH_SERVO_NEUTRAL = 60
+PITCH_SERVO_NEUTRAL = 55
 
-YAW_SERVO_NEUTRAL = 50
+YAW_SERVO_NEUTRAL = 60
 
 MIN_PWM = {'m1' : 0, 'm2': 0, 'm3': 0, 'm4': 0}
 
@@ -110,11 +108,4 @@ FLAPPERCONFIG = {"pitchServoNeutral": PITCH_SERVO_NEUTRAL, "yawServoNeutral": YA
 
 MID_PWM = {'m1': PITCH_SERVO_NEUTRAL * MAX_PWM['m1'] / 100, 'm2' : 0, 'm3': YAW_SERVO_NEUTRAL * MAX_PWM['m3'] / 100, 'm4': 0}
 
-
-'''
-
-# THRUST_COEFFS = {'c1': 0.0114, 'c2': -0.0449} # Nimble
-# 
-# MMOI_WITH_WINGS = {"Ixx": 5.6e-4, "Iyy": 1e-4, "Izz": 3.6e-4}  # kg/m^2 # Nimble
-# MASS_WINGS = 0.026  # kg # Nimble
-# '''
+PWM_TO_FREQ = {'m' : 0.00038492781077195567, 'c': -0.13250131020527664}
