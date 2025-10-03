@@ -259,6 +259,12 @@ class Simulation():
 
     def save_simulation(self):
 
+        '''
+        TODO:
+        
+        write code to translate into global coordinates for rerun visualisation
+        '''
+
         # Dataframes to fill the values at the end
         flapper_state_df = pd.DataFrame(self.flapper_state)
         
