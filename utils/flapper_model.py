@@ -64,7 +64,10 @@ class Simulation():
 
         # Pre-define the necessary dictionaries for the PID and power_distribution -> do they actually have to be class wise variables?
         self.attitude_measured = {"roll": 0, "pitch": 0, "yaw": 0}
-        self.attitude_desired = {"roll": 0, "pitch": 0, "yaw": 0}
+        self.attitude_desired = np.array([0.0, 0.0, 0.0])
+
+        self.attitude=np.array([0, 0, 0])
+        self.rates = np.array([0, 0, 0])
 
 
         # Instantiate the sensor fusion filter
@@ -140,40 +143,54 @@ class Simulation():
         return cmd_roll, cmd_pitch, cmd_yaw
 
 
-    def controllers_pid(self, attitude, rates, setpoints, yaw_mode="velocity"):
-
-        self.attitude_measured["roll"], self.attitude_measured["pitch"], self.attitude_measured["yaw"] = attitude
+    def controllers_pid(self, setpoints, yaw_mode="velocity"):
 
         if yaw_mode == "velocity":
-            self.attitude_desired["yaw"] = capAngle(self.attitude_desired["yaw"] + setpoints["yawrate"] * self.dt)
+            self.attitude_desired[2] = capAngle(self.attitude_desired[2] + setpoints["yawrate"] * self.dt)
 
             if config.YAW_MAX_DELTA != 0.0:
-                delta = capAngle(self.attitude_desired["yaw"] - self.attitude_measured["yaw"])
+                delta = capAngle(self.attitude_desired[2] - self.attitude[2])
 
                 if delta > config.YAW_MAX_DELTA:
-                    self.attitude_desired["yaw"] = self.attitude_measured["yaw"] + config.YAW_MAX_DELTA
+                    self.attitude_desired[2] = self.attitude[2] + config.YAW_MAX_DELTA
                 elif delta < -config.YAW_MAX_DELTA:
-                    self.attitude_desired["yaw"] = self.attitude_measured["yaw"] - config.YAW_MAX_DELTA
+                    self.attitude_desired[2] = self.attitude[2] - config.YAW_MAX_DELTA
 
-            self.attitude_desired["roll"] = setpoints["roll"]
-            self.attitude_desired["pitch"] = setpoints["pitch"]
-            self.attitude_desired["yaw"] = capAngle(self.attitude_desired["yaw"])
+            self.attitude_desired[0] = setpoints["roll"]
+            self.attitude_desired[1] = setpoints["pitch"]
+            self.attitude_desired[2] = capAngle(self.attitude_desired[2])
 
         elif yaw_mode == "manual":
-            self.attitude_desired["roll"] = setpoints["roll"]
-            self.attitude_desired["pitch"] = setpoints["pitch"]
-            self.attitude_desired["yaw"] = setpoints["yaw"]
+            self.attitude_desired[0] = setpoints["roll"]
+            self.attitude_desired[1] = setpoints["pitch"]
+            self.attitude_desired[2] = setpoints["yaw"]
 
-        attitude_desired = np.array([self.attitude_desired["roll"], self.attitude_desired["pitch"], self.attitude_desired["yaw"]])
+        rate_desired = self.attitude_controllers(self.attitude, self.attitude_desired)
 
-        rate_desired = self.attitude_controllers(attitude, attitude_desired)
-
-        cmd_roll_i, cmd_pitch_i, cmd_yaw_i = self.rate_controllers(rates, rate_desired)
+        cmd_roll_i, cmd_pitch_i, cmd_yaw_i = self.rate_controllers(self.rates, rate_desired)
 
         return cmd_roll_i, cmd_pitch_i, cmd_yaw_i
 
 
     def simulate_flapper(self, setpoints, cmd_thrust_i, i, data = None):
+
+         # Run the PID cascade, input to this must be in degrees, setpoints, attitude and rates
+        cmd_roll_i, cmd_pitch_i, cmd_yaw_i = self.controllers_pid(setpoints, yaw_mode="manual")
+
+        self.controls_list.append({"cmd_thrust": cmd_thrust_i, 
+                                   "cmd_roll": cmd_roll_i, 
+                                   "cmd_pitch": cmd_pitch_i, 
+                                   "cmd_yaw": -cmd_yaw_i})
+
+        motors = power_distribution(self.controls_list[-1])
+
+        self.motors_list.append({
+                    "m1": motors[0],
+                    "m2": motors[1],
+                    "m3": motors[2],
+                    "m4": motors[3]
+                })
+        
 
         if self.use_open_loop:
             # Use previous motor command
@@ -225,28 +242,13 @@ class Simulation():
 
         else:
             # Fetch data from onboard (unprocessed, for now) .csv
-            rates = data.loc[i, ["onboard.p", "onboard.q", "onboard.r"]].to_numpy().T
-            acc = data.loc[i, ["onboard.acc.x", "onboard.acc.y", "onboard.acc.z"]].to_numpy().T
+            self.rates = data.loc[i, ["onboard.p", "onboard.q", "onboard.r"]].to_numpy().T
+            self.acc = data.loc[i, ["onboard.acc.x", "onboard.acc.y", "onboard.acc.z"]].to_numpy().T
             
             # Calculate estimated attitude through Mahony filter
-            attitude = self.state_estimation(rates, acc)
+            self.attitude = self.state_estimation(self.rates, self.acc)
         
-        # Run the PID cascade, input to this must be in degrees, setpoints, attitude and rates
-        cmd_roll_i, cmd_pitch_i, cmd_yaw_i = self.controllers_pid(attitude, rates, setpoints, yaw_mode="manual")
-
-        self.controls_list.append({"cmd_thrust": cmd_thrust_i, 
-                                   "cmd_roll": cmd_roll_i, 
-                                   "cmd_pitch": cmd_pitch_i, 
-                                   "cmd_yaw": cmd_yaw_i})
-
-        motors = power_distribution(self.controls_list[-1])
-
-        self.motors_list.append({
-                    "m1": motors[0],
-                    "m2": motors[1],
-                    "m3": motors[2],
-                    "m4": motors[3]
-                })
+       
 
     def save_simulation(self):
 
