@@ -31,39 +31,9 @@ DATA_DIR = ROOT_DIR / "data"
 PLATFORM_DATA = DATA_DIR / config.PLATFORM
 
 
-def load_data(drone_platform):
-    if drone_platform == "nimble":
-        # load the data
-        DATA_FILE = PLATFORM_DATA / "science_paper.mat"
-        data = sio.loadmat(DATA_FILE, squeeze_me=True, struct_as_record=False)
+def load_data():
 
-        nexp = 100
-        experiments = data[f"experiment{nexp}"]
-
-        # Obtain the setpoints
-        setpoints_roll = experiments.onboard.angles_commands_setpoints.SETroll
-        setpoints_pitch = experiments.onboard.angles_commands_setpoints.SETpitch
-        setpoints_yaw = experiments.onboard.angles_commands_setpoints.SETyaw
-
-        rollrate = experiments.onboard.rates.OMx_IMU
-        pitchrate = experiments.onboard.rates.OMy_IMU
-        yawrate = experiments.onboard.rates.OMz_IMU
-
-        cmd_thrust = experiments.onboard.angles_commands_setpoints.CMDthrottle
-        cmd_roll = experiments.onboard.angles_commands_setpoints.CMDroll
-        cmd_pitch = experiments.onboard.angles_commands_setpoints.CMDpitch
-        cmd_yaw = experiments.onboard.angles_commands_setpoints.CMDyaw
-
-        acc_x = experiments.motion_tracking.DVEL_BODYx_filtered
-        acc_y = experiments.motion_tracking.DVEL_BODYy_filtered
-        acc_z = experiments.motion_tracking.DVEL_BODYz_filtered
-
-        """
-        CMD_dihed = np.radians(data.onboard_interpolated.CMDpitch_interp[nman] / 100 * 18)
-        """
-
-    elif drone_platform == "flapper":
-        FILE_PATH = PLATFORM_DATA / "flight_001" / "flight_001_oriented_onboard.csv"
-        data = pd.read_csv(FILE_PATH)
+    FILE_PATH = PLATFORM_DATA / "flight_001" / "flight_001_oriented_onboard.csv"
+    data = pd.read_csv(FILE_PATH)
 
     return data
