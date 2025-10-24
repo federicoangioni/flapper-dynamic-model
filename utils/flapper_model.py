@@ -1,23 +1,14 @@
-import matplotlib.pyplot as plt
-from time import time
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import pandas as pd
-from rich import print
-from rich.progress import track
 
 # Local imports
 import utils.config as config
-from utils.transform_to_global import to_global
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 from utils.power_distribution import power_distribution, capAngle
 from utils.open_loop import FlapperModel
-from utils.data_loader import load_data
 
-
-show = True
-flight_exp = "flight_002"
 
 
 prefix_data = ""
@@ -234,8 +225,8 @@ class Simulation():
 
         else:
             # Fetch data from onboard (unprocessed, for now) .csv
-            rates = data.loc[i, [f"{prefix_data}p", f"{prefix_data}q", f"{prefix_data}r"]].to_numpy().T
-            acc = data.loc[i, [f"{prefix_data}acc.x", f"{prefix_data}acc.y", f"{prefix_data}acc.z"]].to_numpy().T
+            rates = data.loc[i, ["onboard.p", "onboard.q", "onboard.r"]].to_numpy().T
+            acc = data.loc[i, ["onboard.acc.x", "onboard.acc.y", "onboard.acc.z"]].to_numpy().T
             
             # Calculate estimated attitude through Mahony filter
             attitude = self.state_estimation(rates, acc)
@@ -275,121 +266,3 @@ class Simulation():
 
         return flapper_state_df, controls_df, motors_df
         
-
-
-"""
-The main loop runs at 1000 hz, 
-attitude and position at 500 hz
-"""
-
-if __name__ == "__main__":
-    start = time()
-
-    # Declare data file paths
-    data = load_data(config.PLATFORM)
-   
-    # Load onboard data
-    if config.USE_OPEN_LOOP:
-        print("[bold thistle1]Running the modeled open loop.[/bold thistle1]")
-    else:
-        print("[bold thistle1]Running the controllers with the recorded data, here no open loop models are run. " \
-        "The data recorded from the IMU gets fed back to the controllers. [/bold thistle1]")
-    
-    simulation = Simulation(1 / config.FREQ_ATTITUDE, config.USE_OPEN_LOOP)
-
-    print("[bold green]Starting the simulation[/bold green]")
-
-    if config.USE_OPEN_LOOP:
-        for i in track(range(len(data)), description="Processing..."):
-            setpoints = {"roll": 0, "pitch": -40, "yaw": 0,}
-
-            cmd_thrust = 23000 
-            
-            simulation.simulate_flapper(setpoints, cmd_thrust, i)
-
-            simulation.save_simulation()
-
-    else:
-        for i in track(range(len(data)), description="Processing..."):
-            setpoints = {"roll": data.loc[i, f"{prefix_data}controller.roll"], "pitch": data.loc[i, f"{prefix_data}controller.pitch"], "yaw": data.loc[i, f"{prefix_data}controller.yaw"], "yawrate": data.loc[i, f"{prefix_data}controller.yawRate"]}
-
-            cmd_thrust = data.loc[i, f"{prefix_data}controller.cmd_thrust"]
-            simulation.simulate_flapper(setpoints, cmd_thrust, i, data)
-
-    end = time()
-
-    print(f"[magenta]Process run in {round(end - start, 3)} s[/magenta]")
-
-    if show:
-        print("Showing the outputs in plots")
-
-        # First figure
-        fig1, axs1 = plt.subplots(nrows=4, ncols=1)
-
-        axs1[0].set_title("Pitch angle command from rate PID")
-        axs1[0].plot(simulation.cmd_pitch, label="simulated")
-        axs1[0].plot(data[f"{prefix_data}controller.cmd_pitch"], alpha=0.5, label="recorded")
-        axs1[0].legend()
-
-        axs1[1].set_title("Roll angle command from rate PID")
-        axs1[1].plot(simulation.cmd_roll)
-        axs1[1].plot(data[f"{prefix_data}controller.cmd_roll"], alpha=0.5)
-
-        axs1[2].set_title("Yaw angle command from rate PID")
-        axs1[2].plot(simulation.cmd_yaw)
-        axs1[2].plot(data[f"{prefix_data}controller.cmd_yaw"], alpha=0.5)
-        axs1[2].set_ylabel("time (s)")
-        axs1[2].set_ylim(-32767, 32767)
-
-        axs1[3].set_title("CMD thrust directly from controller")
-        axs1[3].plot(data[f"{prefix_data}controller.cmd_thrust"], alpha=0.5)
-        axs1[3].set_ylabel("time (s)")
-
-        plt.tight_layout()
-
-        # Second figure
-        fig2, axs2 = plt.subplots(nrows=4, ncols=1)
-
-        axs2[0].set_title("motor commands m1")
-        axs2[0].plot(simulation.motors_list["m1"], label="simulated")
-        axs2[0].plot(data[f"{prefix_data}motor.m1"], label="recorded", alpha=0.5)
-
-        axs2[1].set_title("motor commands m2")
-        axs2[1].plot(simulation.motors_list["m2"])
-        axs2[1].plot(data[f"{prefix_data}motor.m2"], alpha=0.5)
-
-        axs2[2].set_title("motor commands m3")
-        axs2[2].plot(simulation.motors_list["m3"])
-        axs2[2].plot(data[f"{prefix_data}motor.m3"], alpha=0.5)
-
-        axs2[3].set_title("motor commands m4")
-        axs2[3].plot(simulation.motors_list["m4"])
-        axs2[3].plot(data[f"{prefix_data}motor.m4"], alpha=0.5)
-
-        plt.tight_layout()
-
-        # Third figure, plot angles, rates and velocities
-        fig3, axs3 = plt.subplots(nrows=4, ncols=1)
-
-        axs3[0].set_title("Pitch")
-
-        axs3[0].plot(simulation.theta, label="simulated")
-
-        #axs3[0].plot(np.degrees(processed["onboard.pitch"]), label="recorded")
-        axs3[0].set_ylim(-20, 20)
-        axs3[0].legend()
-
-        axs3[1].set_title("Roll")
-        # axs3[1].plot(np.degrees(processed["onboard.roll"]))
-        axs3[1].plot(simulation.phi)
-
-        axs3[2].set_title("Yaw")
-        axs3[2].plot()
-        axs3[2].plot(simulation.psi)
-
-        axs3[3].set_title("Freq left")
-        axs3[3].plot()
-        axs3[3].plot(simulation.freqs)
-
-        plt.tight_layout()
-        plt.show()

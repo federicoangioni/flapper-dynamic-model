@@ -1,7 +1,8 @@
 import numpy as np
 
-PLATFORM = 'flapper'
-USE_OPEN_LOOP = True
+USE_DYNAMIC_MODEL = False
+
+FLIGHT = "flight_002"
 
 UINT_16B = 65535
 
