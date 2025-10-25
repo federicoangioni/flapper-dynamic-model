@@ -2,11 +2,12 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
 
 from utils import config
 
 WORKING_DIR = Path.cwd()
-DATA_DIR = WORKING_DIR / 'data' / config.PLATFORM
+DATA_DIR = WORKING_DIR / 'data' 
 
 def regression_pwm_frequency():
     columns_to_keep = ['optitrack.freq.left', 'onboard.motor.m2', 'optitrack.freq.right', 'onboard.motor.m4']
@@ -51,48 +52,41 @@ def regression_pwm_frequency():
     plt.show()
 
 def regression_thrust_coeffs():
-    columns_to_keep = ['optitrack.freq.left', 'optitrack.freq.right', 'onboard.vel.z','onboard.acc.z']
-    
+    dataframes = {"hover1":slice(627, 3131), "hover2":slice(690,2595), "climb1":slice(1002, 5070), "climb2":slice(613, 5104)}
+    columns = ["optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.z", "onboard.vel.z"]
     dfs = []
 
-    for dir_path in DATA_DIR.iterdir():
-        if dir_path.is_dir():
-            for file_path in dir_path.glob("*_processed.csv"):
-                print(f"Found dataset: {file_path.name}")
-                df = pd.read_csv(file_path, usecols=columns_to_keep)
+    for data in dataframes.keys():
+        file_path = DATA_DIR / data /f"{data}-processed.csv"
 
-                # Find files ending with _processed.csv
-                if file_path.name == 'flight_001_processed.csv':
-                    df = df.iloc[1200: 1300]
-                elif file_path.name == 'flight_002_processed.csv':
-                    df = df.iloc[1268: 1400]
-                
-                dfs.append(df)
+        df = pd.read_csv(file_path, usecols=columns)
 
-    if dfs:  # Check if list is not empty
-        combined_df = pd.concat(dfs, ignore_index=True)
-    else:
-        print("No _processed.csv files found.")
+        dfs.append(df)
 
-    average_freq = (
-        combined_df['optitrack.freq.left'] + combined_df['optitrack.freq.right']
-    ) / 2
+    combined_df = pd.concat(dfs, ignore_index=True)
 
-    frequency = pd.concat([average_freq], axis=0).to_numpy()
+    w_dot = combined_df["optitrack.acc.z"]
+    w = combined_df["onboard.vel.z"]
+    freq_L = combined_df["optitrack.freq.left"]
+    freq_R = combined_df["optitrack.freq.right"]
+    
+    b = config.MASS_WINGS*(w_dot + config.g0)
 
-    # vertical z equation of motion -> m*a_z = - 2 * (c1 * f + c2) - f * w * bz
+    A = np.vstack([-w * (freq_L + freq_R), -(freq_L + freq_R), -2 * np.ones_like(w)]).T
 
-    thrust = -0.5 * combined_df['onboard.acc.z'] * config.MASS_WINGS  - config.MASS_WINGS * 9.81 # - 0.5 * average_freq * combined_df['onboard.vel.z'] * 9.14e-3
 
-    A = np.vstack([frequency, np.ones(len(frequency))]).T
 
-    b = thrust
+    coeffs, R, *_ = np.linalg.lstsq(A, b)
 
-    m, c = np.linalg.lstsq(A, b)[0]
-        
-    print("Linear regression parameters are ", m, " * x + ", c)
-    plt.scatter(frequency, thrust, alpha=0.5)
-    plt.plot(frequency, m*frequency + c, label='fit line', color='lightgreen')
+    b_pred = A @ coeffs
+
+    r2 = r2_score(b, b_pred)
+
+    print(r2)
+
+    # print("Linear regression parameters are ", m, " * x + ", c)
+    # plt.scatter(frequency, thrust, alpha=0.5)
+    # plt.plot(frequency, m*frequency + c, label='fit line', color='lightgreen')
     plt.title(r'$f$ to $T$ relationship')
     plt.xlabel(r'$f$ values')
     plt.ylabel(r'T (N)')
@@ -101,5 +95,5 @@ def regression_thrust_coeffs():
 
 
 if __name__ == "__main__":
-    regression_pwm_frequency()
+    # regression_pwm_frequency()
     regression_thrust_coeffs()
