@@ -7,7 +7,12 @@ from sklearn.metrics import r2_score
 from utils import config
 
 WORKING_DIR = Path.cwd()
-DATA_DIR = WORKING_DIR / 'data' 
+DATA_DIR = WORKING_DIR / 'data'
+g0 = 9.80665
+
+def compute_thrust(coeffs, f):
+    """T = m*f + c"""
+    return coeffs[0]*f + coeffs[1]
 
 def regression_pwm_frequency():
     columns_to_keep = ['optitrack.freq.left', 'onboard.motor.m2', 'optitrack.freq.right', 'onboard.motor.m4']
@@ -70,7 +75,7 @@ def regression_vertical_forces():
     print("======================================================================")
     print("                                                                      ")
     print("Regression for vertical ascend / descent")
-    print("Using a linear model for the thrust; T(f) = k_zw * w * f + c1 * f + c2")
+    # print("Using a linear model for the thrust; T(f) = k_zw * w * f + c1 * f + c2")
     
     dfs = []
     for data_name, row_slice in dataframes.items():
@@ -111,7 +116,7 @@ def regression_vertical_forces():
     return coeffs, r2
 
 
-def regression_longitudinal():
+def regression_longitudinal(c1=0, c2=0):
     dataframes = {"longitudinal1": slice(720, 5229), "longitudinal2": slice(608, 5151)}
 
     columns = ["time", "optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.x", "optitrack.vel.x", "optitrack.vel.z", 
@@ -138,8 +143,6 @@ def regression_longitudinal():
 
     grad_dihedral = combined_df["grad_dihedral"]
 
-    g0 = 9.80665
-
     u_dot = combined_df["optitrack.acc.x"]
     u = combined_df["optitrack.vel.x"]
     w = combined_df["optitrack.vel.z"]
@@ -151,10 +154,56 @@ def regression_longitudinal():
     lz = config.FLAPPER_DIMS["lz"]
     lw = config.FLAPPER_DIMS["lw"]
 
-
     b = config.MASS_WINGS * (u_dot + g0 * np.sin(theta) + w*q)
 
-    A = np.vstack([-(freq_L + freq_R)*(u - lz * q*0 + 0*lw*grad_dihedral*np.sin(dihedral))]).T
+    A = np.vstack([-(freq_L + freq_R)*(u - lz * q + lw*grad_dihedral*np.sin(dihedral))]).T
+
+    coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
+    b_pred = A @ coeffs
+    r2 = r2_score(b, b_pred)
+
+
+    print(f"The R^2 regression score for the longitudinal regression is {r2:.4f}")
+    print(f"Linear regression parameters are: k_zx = {coeffs[0]:.6f}")
+    
+    # Plot predicted vs actual
+    plt.figure(figsize=(10, 5))
+    
+    plt.scatter(b, b_pred, alpha=0.5)
+    plt.plot([b.min(), b.max()], [b.min(), b.max()], 'r--', label='Perfect fit')
+    plt.xlabel('Actual Force (N)')
+    plt.ylabel('Predicted Force (N)')
+    plt.title(f'Model Fit (R² = {r2:.4f})')
+    plt.legend()
+
+
+    print("                                                                      ")
+    print("======================================================================")
+    return coeffs, r2
+
+def regression_lateral_forces():
+    dataframes = {"lateral1": slice(720, 5229), "lateral2": slice(608, 5151)}
+
+    columns = []
+    
+    print("======================================================================")
+    print("                                                                      ")
+    print("Regression for longitudinal maneuvres")
+    
+    dfs = []
+    for data_name, row_slice in dataframes.items():
+        file_path = DATA_DIR / data_name / f"{data_name}-processed.csv"
+        df = pd.read_csv(file_path, usecols=columns)
+        
+        dfs.append(df)
+
+    combined_df = pd.concat(dfs, ignore_index=True)
+
+
+
+    b = config.MASS_WINGS * (g0)
+
+    A = np.vstack([]).T
 
 
     coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
@@ -176,10 +225,10 @@ def regression_longitudinal():
     plt.legend()
 
 
-
     print("                                                                      ")
     print("======================================================================")
     return coeffs, r2
+
 
 if __name__ == "__main__":
     regression_pwm_frequency()
