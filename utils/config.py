@@ -2,7 +2,7 @@ import numpy as np
 
 USE_DYNAMIC_MODEL = False
 
-FLIGHT = "flight_002"
+FLIGHT = "flight_001"
 
 UINT_16B = 65535
 g0 = 9.80665

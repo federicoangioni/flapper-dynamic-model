@@ -63,7 +63,7 @@ def regression_pwm_frequency():
 
     
 
-def regression_thrust_coeffs():
+def regression_vertical_forces():
     dataframes = {"hover1": slice(627, 3131), "hover2": slice(690, 2595), 
                   "climb1": slice(1002, 5070), "climb2": slice(613, 5104)}
     columns = ["optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.z", "optitrack.vel.z"]
@@ -113,26 +113,76 @@ def regression_thrust_coeffs():
 
 def regression_longitudinal():
     dataframes = {"longitudinal1": slice(720, 5229), "longitudinal2": slice(608, 5151)}
-    columns = ["optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.x", "optitrack.vel.x", "optitrack.dihedral.left", "optitrack.dihedral.right", "optitrack.pitch"]
+
+    columns = ["time", "optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.x", "optitrack.vel.x", "optitrack.vel.z", 
+               "optitrack.dihedral.left", "optitrack.dihedral.right", "optitrack.q" ,"optitrack.pitch"]
+    
     print("======================================================================")
     print("                                                                      ")
     print("Regression for longitudinal maneuvres")
-    print("bla bla bla")
     
     dfs = []
     for data_name, row_slice in dataframes.items():
         file_path = DATA_DIR / data_name / f"{data_name}-processed.csv"
         df = pd.read_csv(file_path, usecols=columns)
-        df = df.iloc[row_slice] 
+        df = df.iloc[row_slice].copy()
+
+        df["dihedral"] = (df["optitrack.dihedral.left"] + df["optitrack.dihedral.right"]) / 2
+        df["grad_dihedral"] = np.gradient(df["dihedral"], df["time"])
+        
         dfs.append(df)
 
+    combined_df = pd.concat(dfs, ignore_index=True)
+
+    dihedral = combined_df["dihedral"]
+
+    grad_dihedral = combined_df["grad_dihedral"]
+
+    g0 = 9.80665
+
+    u_dot = combined_df["optitrack.acc.x"]
+    u = combined_df["optitrack.vel.x"]
+    w = combined_df["optitrack.vel.z"]
+    q = combined_df["optitrack.q"]
+    theta = combined_df["optitrack.pitch"]
+    freq_L = combined_df["optitrack.freq.left"]
+    freq_R = combined_df["optitrack.freq.right"]
+
+    lz = config.FLAPPER_DIMS["lz"]
+    lw = config.FLAPPER_DIMS["lw"]
+
+
+    b = config.MASS_WINGS * (u_dot + g0 * np.sin(theta) + w*q)
+
+    A = np.vstack([-(freq_L + freq_R)*(u - lz * q*0 + 0*lw*grad_dihedral*np.sin(dihedral))]).T
+
+
+    coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
+    b_pred = A @ coeffs
+    r2 = r2_score(b, b_pred)
+
+
+    print(f"The R^2 regression score for the longitudinal regression is {r2:.4f}")
+    print(f"Linear regression parameters are: k_zx = {coeffs[0]:.6f}")
+    
+    # Plot predicted vs actual
+    plt.figure(figsize=(10, 5))
+    
+    plt.scatter(b, b_pred, alpha=0.5)
+    plt.plot([b.min(), b.max()], [b.min(), b.max()], 'r--', label='Perfect fit')
+    plt.xlabel('Actual Force (N)')
+    plt.ylabel('Predicted Force (N)')
+    plt.title(f'Model Fit (R² = {r2:.4f})')
+    plt.legend()
 
 
 
+    print("                                                                      ")
+    print("======================================================================")
+    return coeffs, r2
 
 if __name__ == "__main__":
     regression_pwm_frequency()
-    regression_thrust_coeffs()
+    coeffs_vertical = regression_vertical_forces()
     regression_longitudinal()
-
-    plt.show()
+    # plt.show()
