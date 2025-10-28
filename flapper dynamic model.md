@@ -26,9 +26,9 @@ Thus the torque equations of motion collapse into a reduced size with respect to
 
 $$
 \begin{align}
-\dot{u} &= -(wq - vr) + \frac{X}{m} + g \sin \theta \\
-\dot{v} &= -(ur - wp) + \frac{Y}{m} - g \cos \theta \sin \phi \\
-\dot{w} &= -(vp - uq) + \frac{Z}{m} - g \cos \theta \cos \phi \\
+\dot{u} &= -(wq - vr) + \frac{X}{m} - g \sin \theta \\
+\dot{v} &= -(ur - wp) + \frac{Y}{m} + g \cos \theta \sin \phi \\
+\dot{w} &= -(vp - uq) + \frac{Z}{m} + g \cos \theta \cos \phi \\
 I_{xx}\dot{p} &= (I_{yy} - I_{zz})qr + L \\
 I_{yy}\dot{q} &= (I_{zz} - I_{xx})pr + M \\
 I_{zz}\dot{r} &= (I_{xx} - I_{yy})pq + N \\
