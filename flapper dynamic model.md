@@ -1,13 +1,6 @@
-2025-09-02 22:58
-
-Status: #mature
-
-Tags: [[flapper]]
-
-
 # flapper dynamic model
 
-### Equations of Motion "template"
+## Equations of Motion "template"
 
 Due to the nice symmetry of the flapper all the product moments of inertia are zero kg/m².  Thus, the mass moment of inertia matrix $\mathcal{I}$ is diagonal. In fact, $I_{xy} = I_{yz} = 0$ as the flapper is perfectly symmetric about this planes, and $I_{xz} \sim 0$, as along the $xz$ plane the battery is slightly asymmetric, but the difference is really close to the axes and thus negligible.
 $$
@@ -22,7 +15,8 @@ I_{xx} & 0 & 0 \\
 0 & 0 & I_{zz}
 \end{bmatrix}
 $$
-Thus the torque equations of motion collapse into a reduced size with respect to what seen in [[translational and rotational damping of flapping flight]].
+
+Given the moment of inertia matrix is diagonal, this reduces the couplings between each of the 6 equations of motion. The equations of motions, with the applied forces $X, Y, Z$ and the applied moments $L, M, N$ can be written in scalar form in the following way:
 
 $$
 \begin{align}
@@ -32,14 +26,23 @@ $$
 I_{xx}\dot{p} &= (I_{yy} - I_{zz})qr + L \\
 I_{yy}\dot{q} &= (I_{zz} - I_{xx})pr + M \\
 I_{zz}\dot{r} &= (I_{xx} - I_{yy})pq + N \\
+\end{align}
+$$
+
+While the relationship between the rates and the euler angles is given by a multiplication with the rotation matrix defining the intrinsic rotations from body axes to euler angles. 
+
+$$
+\begin{align}
 \dot{\phi} &= p + q \sin \phi \tan \theta + r \cos \phi \tan \theta \\
 \dot{\theta} &= q \cos \phi - r \phi \\
 \dot{\psi} &= r
 \end{align}
 $$
-Where $X, Y, Z$ are the applied forces, and $L, M, N$ the torques applied.
 
-From Matej's model, purely longitudinal.
+## Model from "A minimal longitudinal dynamic model of a taillless ... " by Matej Karásek
+
+The model presented is purely longitudinal. and has the following applied forces and moments.
+
 $$
 \begin{aligned}
 X &= - (f_L + f_R)\:k_{xu}\:(u - l_z \;q + \dot{l_d}) \\
@@ -51,7 +54,28 @@ N &= \varnothing\\
 \end{aligned}
 $$
 
-By applying the same philosophy of the damping being proportional to the flapping frequency and the velocity of the center of pressure we obtain:
+## Building up from the previous model
+
+The same philosophy of defining the drag force as linearly proportional to the flapping frequency and the body axes velocity in the direction the drag is acting. To apply these concepts, few different variables are introduced.
+
+Firstly, the dihedral angle $\Gamma$ is defined as positive for $\theta > 0$, and thus pitching backwards, similarly, $\Gamma <0$ brings to negative pitch, and thus going forward. Please note the $\theta >0$ or $\theta< 0$ is only valid if the drone is considered to be hovering initially.
+
+Secondly, the yaw angle $\Lambda$
+
+
+Moreover, the angle of attack of the wing: this can change due to a change in dihedral, as a change in dihedral angle will lead to the top of the wing moving with respect to the fixed end which is constrained by the yaw servo. The angle of attack is also what is changed in order for yaw to happen, the servo motor changes the angle of attacks in each wing oppositely (with opposite signs). The angle of attack is defined according to the aerospace standard, negative if the wing pitches down (e.g. in a longitudinal backwards maneuvre), and positive if the wing pitches upwards.
+
+
+
+
+The definition of the angle of attack is different for each wing, due to the servo motor imposing different (opposite) conditions on each wing.
+
+$$
+\begin{align}
+\alpha_L &= \arcsin\Big(\frac{-l_w\sin\Gamma + l_y\sin\Lambda}{l_k}\Big)\\
+\alpha_R &= \arcsin\Big(\frac{-l_w\sin\Gamma - l_y\sin\Lambda}{l_k}\Big) \\
+\end{align}
+$$
 
 Let's define some variables for simplicity:
 $$
@@ -59,8 +83,7 @@ $$
 Z_L & =f_L (w - l_w \sin(\Gamma)q + l_w \cos(\Gamma)p) \\
 Z_R &= f_R (w - l_w \sin(\Gamma)q - l_w \cos(\Gamma)p) \\
 l_d &= l_w \sin(\Gamma) \\
-\sin(\alpha_L) &= \frac{-l_w\sin\Gamma + l_y\sin\Lambda}{l_k} \\
-\sin(\alpha_R) &= \frac{-l_w\sin\Gamma - l_y\sin\Lambda}{l_k} \\
+
 \end{aligned}
 $$
 Which becomes: (use $\Lambda$ for yaw angle actuator)
@@ -86,35 +109,8 @@ N &= -k_N \left[(f_L + f_R)Rr + (f_L - f_R)u + (f_L + f_R)\Gamma v\right] + l_w\
 $$
 Understand what happens if dihedral and yaw servo are both engaged.
 
-## TODO:
-- [ ] Take a video from a lateral view, actuating first only the servo, then only the dihedral and then actuate first the dihedral and then the servo. 
-- [ ] Take a video of the yaw servo actuator to find its transfer function, do the same for the dihedral angle, ideally also log the internal data
-- [ ] Take all the necessary measures, on cad even better probably.
 
-### Notes
 
 $\Lambda > 0$ expect $r<0$ 
 
-
-
-
-## Remarks
-I have looked at Ernesto's paper once again, it seems like here the lift is not fully modeled here, however Matej did have some good results with this even up to 60$\degree$ pitch this is why for now I continued with this. I do think the damping coefficients should not be constant, as if we take a stroke averaged view of the flapper, we are effectively having a flat plate at different angles of attack, which means the damping will decrease with higher pitches/aoa (pitch=aoa almost), and effectively increase this "unmodeled", again to a certain extent, lift.
-
-For sure from Ernesto's paper I don't think modelling the lift as $L=qSC_L$, is correct as there are different papers on wind tunnel experiments (see harvard's one) and analytical derivations which clearly show the direct proportionality with frequency and CoP speed.
-
-Does Matej's "philosophy" of not modeling lift maybe work as while the angle of attack is decreasing the drag is decreasing and the lift increasing? 
-
-I assume if the drone is hovering, and the yaw servo is actuated it actually slowly descends as part of the thrust vector is not dedicated anymore to the Z axis
-## Questions
-
-- can I have a look at the drone for a morning/afternoon (probably less) to take some measurements?
-- How can I check what is the angle for  the yaw servo?
-- See issues on GitHub.
-
-
-
-
-
-# References
 
