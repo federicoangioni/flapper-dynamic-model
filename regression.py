@@ -57,7 +57,7 @@ def regression_pwm_frequency():
     plt.scatter(masked_df['onboard.motor.m2'], masked_df['optitrack.freq.left'], label='freq_left', alpha = 0.5)
     plt.scatter(masked_df['onboard.motor.m4'], masked_df['optitrack.freq.right'], label='freq_right', alpha=0.5)
     plt.plot(masked_df['onboard.motor.m2'], coeffs[0]*masked_df['onboard.motor.m2'] + coeffs[1], label='fit line', color='lightgreen')
-    plt.title(r'PWM to $f$ relationship (R² = {r2:.4f})')
+    plt.title(rf'PWM to $f$ relationship (R² = {r2:.4f})')
     plt.xlabel('pwm values')
     plt.ylabel(r'$f$ (Hz)')
     plt.legend()
@@ -75,7 +75,7 @@ def regression_vertical_forces():
     print("======================================================================")
     print("                                                                      ")
     print("Regression for vertical ascend / descent")
-    # print("Using a linear model for the thrust; T(f) = k_zw * w * f + c1 * f + c2")
+    # print("Using a linear model for the thrust; T(f) = c1 * f + c2")
     
     dfs = []
     for data_name, row_slice in dataframes.items():
@@ -116,7 +116,7 @@ def regression_vertical_forces():
     return coeffs, r2
 
 
-def regression_longitudinal(c1=0, c2=0):
+def regression_longitudinal_forces():
     dataframes = {"longitudinal1": slice(720, 5229), "longitudinal2": slice(608, 5151)}
 
     columns = ["time", "optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.x", "optitrack.vel.x", "optitrack.vel.z", 
@@ -182,13 +182,13 @@ def regression_longitudinal(c1=0, c2=0):
     return coeffs, r2
 
 def regression_lateral_forces():
-    dataframes = {"lateral1": slice(720, 5229), "lateral2": slice(608, 5151)}
+    dataframes = {"lateral1": slice(727, 5163), "lateral2": slice(849, 5305)}
 
     columns = []
     
     print("======================================================================")
     print("                                                                      ")
-    print("Regression for longitudinal maneuvres")
+    print("Regression for lateral forces")
     
     dfs = []
     for data_name, row_slice in dataframes.items():
@@ -233,5 +233,5 @@ def regression_lateral_forces():
 if __name__ == "__main__":
     regression_pwm_frequency()
     coeffs_vertical = regression_vertical_forces()
-    regression_longitudinal()
-    # plt.show()
+    regression_longitudinal_forces()
+    plt.show()
