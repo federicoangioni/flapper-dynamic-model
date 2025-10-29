@@ -113,4 +113,59 @@ Understand what happens if dihedral and yaw servo are both engaged.
 
 $\Lambda > 0$ expect $r<0$ 
 
+## Regressions on the forces
 
+### PWM to Frequency
+
+![image info](./outputs/pwm_to_f.png)
+
+Yields the following terminal output.
+
+```
+======================================================================
+                                                                      
+Regression for pwm to f relationship
+Using a linear model for the thrust; f = c1 * pwm + c2
+Found dataset: flight_001_processed.csv
+Found dataset: flight_002_processed.csv
+The R^2 regression score for the regression from pwm to f is 0.8950
+Linear regression parameters are: c1 = 0.000385, c2 = -0.132501
+                                                                      
+======================================================================
+```
+
+
+### **Hovering and Climbing**
+
+![image info](./outputs/vertical_regression.png)
+
+
+Yields the following terminal output.
+
+```
+======================================================================
+                                                                      
+Regression for vertical ascend / descent
+The R^2 regression score for the vertical regression is 0.8997
+Linear regression parameters are: k_zw = 0.003909, c1 = 0.039983, c2 = -1.020232
+                                                                      
+======================================================================
+```
+
+
+### **Longitudinal Regression**
+
+![image info](./outputs/longitudinal_regression.png)
+vertical
+
+Yields the following terminal output.
+
+```
+======================================================================
+                                                                      
+Regression for longitudinal maneuvres
+The R^2 regression score for the longitudinal regression is 0.9276
+Linear regression parameters are: k_zx = 0.016908
+                                                                      
+======================================================================
+```
