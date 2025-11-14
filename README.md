@@ -88,7 +88,6 @@ $$
 Z_L & =f_L (w - l_w \sin(\Gamma)q + l_w \cos(\Gamma)p) \\
 Z_R &= f_R (w - l_w \sin(\Gamma)q - l_w \cos(\Gamma)p) \\
 l_d &= l_w \sin(\Gamma) \\
-
 \end{aligned}
 $$
 
