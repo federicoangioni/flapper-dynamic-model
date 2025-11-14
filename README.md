@@ -62,9 +62,9 @@ $$
 
 ## Building up from the previous model
 
-The same philosophy of defining the drag force as linearly proportional to the flapping frequency and the body axes velocity in the direction the drag is acting. To apply these concepts, few different variables are introduced.
+The same philosophy of defining the drag force as linearly proportional to the flapping frequency and the body axes velocity in the direction the drag is acting. To apply these concepts, a few different variables are introduced.
 
-Firstly, the dihedral angle $\Gamma$ is defined as positive for $\theta > 0$, and thus pitching backwards, similarly, $\Gamma <0$ brings to negative pitch, and thus going forward. Please note the $\theta >0$ or $\theta< 0$ is only valid if the drone is considered to be hovering initially.
+Firstly, the dihedral angle $\Gamma$ is defined as positive for $\theta > 0$, and thus pitching backwards, similarly, $\Gamma <0$ brings to negative pitch, and thus going forward. Please note that the $\theta >0$ or $\theta< 0$ is only valid if the drone is considered to be hovering initially.
 
 Secondly, the yaw angle $\Lambda$
 
@@ -136,7 +136,9 @@ Linear regression parameters are: c1 = 0.000385, c2 = -0.132501
 ```
 
 
-### **Hovering and Climbing**
+### **Hovering and Climbing** (Body z-axes forces)
+
+Regression was done with ascending, descending, and hovering data of the Flapper Nimble +.
 
 ![image info](./outputs/vertical_regression.png)
 
@@ -154,7 +156,10 @@ Linear regression parameters are: k_zw = 0.003909, c1 = 0.039983, c2 = -1.020232
 ```
 
 
-### **Longitudinal Regression**
+### **Longitudinal Regression** (Body x-axes forces) 
+
+Regression was done with longitudinal data (pitch maneuvers) of the Flapper Nimble +.
+
 
 ![image info](./outputs/longitudinal_regression.png)
 vertical
