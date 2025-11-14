@@ -82,6 +82,7 @@ $$
 $$
 
 Let's define some variables for simplicity:
+
 $$
 \begin{aligned}
 Z_L & =f_L (w - l_w \sin(\Gamma)q + l_w \cos(\Gamma)p) \\
