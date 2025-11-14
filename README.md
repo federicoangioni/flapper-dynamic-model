@@ -8,6 +8,7 @@ A dynamic model for the flapper+ flapping wing micro air vehicle, complete with 
 ## Equations of Motion "template"
 
 Due to the nice symmetry of the flapper all the product moments of inertia are zero kg/m².  Thus, the mass moment of inertia matrix $\mathcal{I}$ is diagonal. In fact, $I_{xy} = I_{yz} = 0$ as the flapper is perfectly symmetric about this planes, and $I_{xz} \sim 0$, as along the $xz$ plane the battery is slightly asymmetric, but the difference is really close to the axes and thus negligible.
+
 $$
 \mathcal{I} =
 \begin{bmatrix}
