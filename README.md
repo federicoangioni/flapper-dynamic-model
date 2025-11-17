@@ -117,7 +117,7 @@ $\Lambda > 0$ expect $r<0$
 
 ### PWM to Frequency
 
-![image info](./outputs/pwm_to_f.png)
+![image info](./outputs/power_frequency_regression.png)
 
 Yields the following terminal output.
 
@@ -171,6 +171,26 @@ Yields the following terminal output.
 Regression for longitudinal maneuvres
 The R^2 regression score for the longitudinal regression is 0.9276
 Linear regression parameters are: k_zx = 0.016908
+                                                                      
+======================================================================
+```
+
+### **Lateral Regression** (Body y-axes forces) 
+
+Regression was done with lateral data (roll maneuvers) of the Flapper Nimble +.
+
+
+![image info](./outputs/lateral_regression.png)
+vertical
+
+Yields the following terminal output.
+
+```
+======================================================================
+                                                                      
+Regression for lateral forces
+The R^2 regression score for the longitudinal regression is 0.8735
+Linear regression parameters are: k_zx = 0.010857
                                                                       
 ======================================================================
 ```

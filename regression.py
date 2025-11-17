@@ -61,6 +61,9 @@ def regression_pwm_frequency():
     plt.xlabel('pwm values')
     plt.ylabel(r'$f$ (Hz)')
     plt.legend()
+    plt.tight_layout()
+
+    plt.savefig("outputs/power_frequency_regression.png")
 
     print("                                                                      ")
     print("======================================================================")
@@ -102,7 +105,7 @@ def regression_vertical_forces():
     print(f"Linear regression parameters are: k_zw = {coeffs[0]:.6f}, c1 = {coeffs[1]:.6f}, c2 = {coeffs[2]:.6f}")
     
     # Plot predicted vs actual
-    plt.figure(figsize=(10, 5))
+    plt.figure()
     
     plt.scatter(b, b_pred, alpha=0.5)
     plt.plot([b.min(), b.max()], [b.min(), b.max()], 'r--', label='Perfect fit')
@@ -110,6 +113,8 @@ def regression_vertical_forces():
     plt.ylabel('Predicted Force (N)')
     plt.title(f'Model Fit (R² = {r2:.4f})')
     plt.legend()
+    plt.tight_layout()
+    plt.savefig("outputs/vertical_regression.png")
 
     print("                                                                      ")
     print("======================================================================")
@@ -167,7 +172,7 @@ def regression_longitudinal_forces():
     print(f"Linear regression parameters are: k_zx = {coeffs[0]:.6f}")
     
     # Plot predicted vs actual
-    plt.figure(figsize=(10, 5))
+    plt.figure()
     
     plt.scatter(b, b_pred, alpha=0.5)
     plt.plot([b.min(), b.max()], [b.min(), b.max()], 'r--', label='Perfect fit')
@@ -175,6 +180,9 @@ def regression_longitudinal_forces():
     plt.ylabel('Predicted Force (N)')
     plt.title(f'Model Fit (R² = {r2:.4f})')
     plt.legend()
+    plt.tight_layout()
+
+    plt.savefig("outputs/longitudinal_regression.png")
 
 
     print("                                                                      ")
@@ -184,7 +192,8 @@ def regression_longitudinal_forces():
 def regression_lateral_forces():
     dataframes = {"lateral1": slice(727, 5163), "lateral2": slice(849, 5305)}
 
-    columns = []
+    columns = ["optitrack.freq.left", "optitrack.freq.right", "optitrack.acc.y", "optitrack.vel.y", 
+               "optitrack.roll", "optitrack.vel.z", "optitrack.p"]
     
     print("======================================================================")
     print("                                                                      ")
@@ -199,11 +208,20 @@ def regression_lateral_forces():
 
     combined_df = pd.concat(dfs, ignore_index=True)
 
+    v_dot = combined_df["optitrack.acc.y"]
+    v = combined_df["optitrack.vel.y"]
+    phi = combined_df["optitrack.roll"]
+    w = combined_df["optitrack.vel.z"]
+    p = combined_df["optitrack.p"]
+    freq_L = combined_df["optitrack.freq.left"]
+    freq_R = combined_df["optitrack.freq.right"]
+
+    lz = config.FLAPPER_DIMS["lz"]
 
 
-    b = config.MASS_WINGS * (g0)
+    b = config.MASS_WINGS * (v_dot - g0 * np.sin(phi) - w * p)
 
-    A = np.vstack([]).T
+    A = np.vstack([- (freq_L + freq_R) * (v - lz * p)]).T
 
 
     coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
@@ -215,7 +233,7 @@ def regression_lateral_forces():
     print(f"Linear regression parameters are: k_zx = {coeffs[0]:.6f}")
     
     # Plot predicted vs actual
-    plt.figure(figsize=(10, 5))
+    plt.figure()
     
     plt.scatter(b, b_pred, alpha=0.5)
     plt.plot([b.min(), b.max()], [b.min(), b.max()], 'r--', label='Perfect fit')
@@ -223,7 +241,9 @@ def regression_lateral_forces():
     plt.ylabel('Predicted Force (N)')
     plt.title(f'Model Fit (R² = {r2:.4f})')
     plt.legend()
+    plt.tight_layout()
 
+    plt.savefig("outputs/lateral_regression.png")
 
     print("                                                                      ")
     print("======================================================================")
@@ -234,4 +254,5 @@ if __name__ == "__main__":
     regression_pwm_frequency()
     coeffs_vertical = regression_vertical_forces()
     regression_longitudinal_forces()
-    plt.show()
+    regression_lateral_forces()
+    # plt.show()
