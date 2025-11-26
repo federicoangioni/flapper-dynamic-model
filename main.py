@@ -1,5 +1,5 @@
 import rerun as rr
-from utils.flapper_model import Simulation 
+from utils.simulation_env import Simulation 
 import rerun.blueprint as rrb
 from time import time
 import numpy as np

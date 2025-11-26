@@ -4,7 +4,7 @@ from . import config
 
 g0 = 9.80665  # m/s^2
 
-class FlapperModel:
+class DynamicModel:
     def __init__(self, dt, inertia, mass, model_coeffs, thrust_coeffs, flapper_dims, tf_coeffs, max_pwm, mid_pwm, min_pwm, max_act_state,):
         """Assume everything is given in standard SI units"""
 

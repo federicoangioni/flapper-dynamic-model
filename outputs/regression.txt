@@ -25,7 +25,7 @@ Linear regression parameters are: k_zx = 0.016908
 ======================================================================
                                                                       
 Regression for lateral forces
-The R^2 regression score for the longitudinal regression is 0.8735
+The R^2 regression score for the lateral regression is 0.8735
 Linear regression parameters are: k_zx = 0.010857
                                                                       
 ======================================================================

@@ -7,7 +7,7 @@ import utils.config as config
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 from utils.power_distribution import power_distribution, capAngle
-from utils.open_loop import FlapperModel
+from utils.open_loop import DynamicModel
 
 
 
@@ -105,7 +105,7 @@ class Simulation():
         )
 
         # Instantiate the open loop model
-        self.Flapper = FlapperModel(1 / config.FREQ_ATTITUDE, config.MMOI_WITH_WINGS_XY, config.MASS_WINGS, config.MODEL_COEFFS, 
+        self.Flapper = DynamicModel(1 / config.FREQ_ATTITUDE, config.MMOI_WITH_WINGS_XY, config.MASS_WINGS, config.MODEL_COEFFS, 
                             config.THRUST_COEFFS, config.FLAPPER_DIMS, config.TF_COEFFS, config.MAX_PWM, config.MID_PWM, config.MIN_PWM, 
                             config.MAX_ACT_STATE)
 

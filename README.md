@@ -104,9 +104,9 @@ $$
 
 $$
 \begin{aligned}
-L &= -k_{zw} \left[Z_L - Z_R\right] l_w \cos(\Gamma)+ Y\:l_z + l_W\sin(\Gamma)(T_L\cos(\alpha_L) - T_R\cos(\alpha_R))\\
-M &= -k_{xu} (f_L + f_R) (u - l_z q + l_w\dot{\Gamma}\sin{\Gamma}) \cdot l_z +(T_L\sin(\alpha_L) + T_R\sin(\alpha_R)) \cdot l_z-k_{zw} \left[Z_L + Z_R\right] \cdot l_d + (T_R\cos(\alpha_R) + T_L\cos(\alpha_L)) \cdot l_w\sin(\Gamma)\\
-N &= -k_N \left[(f_L + f_R)Rr + (f_L - f_R)u + (f_L + f_R)\Gamma v\right] + l_w\cos(\Gamma)(T_R\sin(\alpha_R) - T_L\cos(\alpha_L))
+L &= -k_{L1} \left[Z_L - Z_R\right] l_w \cos(\Gamma)+ k_{L2}Y\:l_z + k_{L3}l_W\sin(\Gamma)(T_L\cos(\alpha_L) - T_R\cos(\alpha_R))\\
+M &= -k_{M1} (f_L + f_R) (u - l_z q + l_w\dot{\Gamma}\sin{\Gamma}) \cdot l_z + k_{M2}(T_L\sin(\alpha_L) + T_R\sin(\alpha_R)) \cdot l_z-k_{M3} \left[Z_L + Z_R\right] \cdot l_d + k_{M4}(T_R\cos(\alpha_R) + T_L\cos(\alpha_L)) \cdot l_w\sin(\Gamma)\\
+N &= -k_{N1} \left[(f_L + f_R)Rr + (f_L - f_R)u + (f_L + f_R)\Gamma v\right] + k_{N2}l_w\cos(\Gamma)(T_R\sin(\alpha_R) - T_L\cos(\alpha_L))
 \end{aligned}
 $$
 
@@ -194,3 +194,25 @@ Linear regression parameters are: k_zx = 0.010857
                                                                       
 ======================================================================
 ```
+
+## Longitudinal Moments
+
+Regression for moments for pitch
+
+![image info](./outputs/longitudinal_moment_regression.png)
+
+
+Predicted moment versus actual moment 
+
+![image info](./outputs/longitudinal_moment_prediction.png)
+
+note: maybe moodel movement of top dihedral servo
+
+- meta-heuristic optimization, evolutionary algorithms, CMA-ES, bayesian optimization
+
+if we want to use meta heuristic optimization the equation must be simulated with the entire controller architecture, otherwise it makes no sense
+
+
+## Next steps
+
+Simulate the equations of motion only for a specific 
