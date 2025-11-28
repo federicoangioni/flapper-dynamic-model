@@ -3,11 +3,11 @@ import numpy as np
 import pandas as pd
 
 # Local imports
-import utils.config as config
+import utils.config_old as config_old
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 from utils.power_distribution import power_distribution, capAngle
-from utils.open_loop import DynamicModel
+from utils.dynamic_model import DynamicModel
 
 
 
@@ -20,7 +20,7 @@ class Simulation():
 
         self.use_open_loop = use_open_loop
 
-        self.motors_list = [{"m1": config.MID_PWM['m1'], "m2": 0, "m3": config.MID_PWM['m3'], "m4": 0},]
+        self.motors_list = [{"m1": config_old.MID_PWM['m1'], "m2": 0, "m3": config_old.MID_PWM['m3'], "m4": 0},]
 
         self.controls_list = [{"thrust": 0, "roll": 0, "pitch": 0, "yaw": 0},]
 
@@ -75,39 +75,39 @@ class Simulation():
 
         # Instantiate PID attitude controllers
         self.roll_pid = PID_controller(
-            config.ROLL_KP, config.ROLL_KI, config.ROLL_KD, config.ROLL_KFF,
-            config.ROLL_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.ROLL_KP, config_old.ROLL_KI, config_old.ROLL_KD, config_old.ROLL_KFF,
+            config_old.ROLL_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
         self.pitch_pid = PID_controller(
-            config.PITCH_KP, config.PITCH_KI, config.PITCH_KD, config.PITCH_KFF,
-            config.PITCH_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.PITCH_KP, config_old.PITCH_KI, config_old.PITCH_KD, config_old.PITCH_KFF,
+            config_old.PITCH_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
         self.yaw_pid = PID_controller(
-            config.YAW_KP, config.YAW_KI, config.YAW_KD, config.YAW_KFF,
-            config.YAW_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.YAW_KP, config_old.YAW_KI, config_old.YAW_KD, config_old.YAW_KFF,
+            config_old.YAW_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
 
         # Instantiate PID attitude rate controllers
         self.rollrate_pid = PID_controller(
-            config.ROLLRATE_KP, config.ROLLRATE_KI, config.ROLLRATE_KD, config.ROLLRATE_KFF,
-            config.ROLLRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMX_FILT_CUT, True
+            config_old.ROLLRATE_KP, config_old.ROLLRATE_KI, config_old.ROLLRATE_KD, config_old.ROLLRATE_KFF,
+            config_old.ROLLRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMX_FILT_CUT, True
         )
         self.pitchrate_pid = PID_controller(
-            config.PITCHRATE_KP, config.PITCHRATE_KI, config.PITCHRATE_KD, config.PITCHRATE_KFF,
-            config.PITCHRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMY_FILT_CUT, True
+            config_old.PITCHRATE_KP, config_old.PITCHRATE_KI, config_old.PITCHRATE_KD, config_old.PITCHRATE_KFF,
+            config_old.PITCHRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMY_FILT_CUT, True
         )
         self.yawrate_pid = PID_controller(
-            config.YAWRATE_KP, config.YAWRATE_KI, config.YAWRATE_KD, config.YAWRATE_KFF,
-            config.YAWRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMZ_FILT_CUT, True, 32767.0
+            config_old.YAWRATE_KP, config_old.YAWRATE_KI, config_old.YAWRATE_KD, config_old.YAWRATE_KFF,
+            config_old.YAWRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMZ_FILT_CUT, True, 32767.0
         )
 
         # Instantiate the open loop model
-        self.Flapper = DynamicModel(1 / config.FREQ_ATTITUDE, config.MMOI_WITH_WINGS_XY, config.MASS_WINGS, config.MODEL_COEFFS, 
-                            config.THRUST_COEFFS, config.FLAPPER_DIMS, config.TF_COEFFS, config.MAX_PWM, config.MID_PWM, config.MIN_PWM, 
-                            config.MAX_ACT_STATE)
+        self.Flapper = DynamicModel(1 / config_old.FREQ_ATTITUDE, config_old.MMOI_WITH_WINGS_XY, config_old.MASS_WINGS, config_old.MODEL_COEFFS, 
+                            config_old.THRUST_COEFFS, config_old.FLAPPER_DIMS, config_old.TF_COEFFS, config_old.MAX_PWM, config_old.MID_PWM, config_old.MIN_PWM, 
+                            config_old.MAX_ACT_STATE)
 
 
     def state_estimation(self, rates, acc):
@@ -148,13 +148,13 @@ class Simulation():
         if yaw_mode == "velocity":
             self.attitude_desired[2] = capAngle(self.attitude_desired[2] + setpoints["yawrate"] * self.dt)
 
-            if config.YAW_MAX_DELTA != 0.0:
+            if config_old.YAW_MAX_DELTA != 0.0:
                 delta = capAngle(self.attitude_desired[2] - self.attitude[2])
 
-                if delta > config.YAW_MAX_DELTA:
-                    self.attitude_desired[2] = self.attitude[2] + config.YAW_MAX_DELTA
-                elif delta < -config.YAW_MAX_DELTA:
-                    self.attitude_desired[2] = self.attitude[2] - config.YAW_MAX_DELTA
+                if delta > config_old.YAW_MAX_DELTA:
+                    self.attitude_desired[2] = self.attitude[2] + config_old.YAW_MAX_DELTA
+                elif delta < -config_old.YAW_MAX_DELTA:
+                    self.attitude_desired[2] = self.attitude[2] - config_old.YAW_MAX_DELTA
 
             self.attitude_desired[0] = setpoints["roll"]
             self.attitude_desired[1] = setpoints["pitch"]

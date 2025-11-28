@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 from scipy.interpolate import UnivariateSpline
 
-from utils import config
+from utils import config_old
 
 WORKING_DIR = Path.cwd()
 DATA_DIR = WORKING_DIR / 'data'
@@ -20,9 +20,9 @@ def compute_thrust(coeffs, f):
 def compute_angle_attack(dihedral, yaw_servo_angle, wing="R"):
 
     alpha = 0
-    lw = config.FLAPPER_DIMS["lw"]
-    ly = config.FLAPPER_DIMS["ly"]
-    lk = config.FLAPPER_DIMS["lk"]
+    lw = config_old.FLAPPER_DIMS["lw"]
+    ly = config_old.FLAPPER_DIMS["ly"]
+    lk = config_old.FLAPPER_DIMS["lk"]
 
     if wing == "R":
         alpha = np.arcsin((- lw * np.sin(dihedral) - ly * np.sin(yaw_servo_angle)) / lk)
@@ -115,7 +115,7 @@ def regression_vertical_forces():
     freq_L = combined_df["optitrack.freq.left"]
     freq_R = combined_df["optitrack.freq.right"]
     g0 = 9.80665
-    b = config.MASS_WINGS * (w_dot + g0)
+    b = config_old.MASS_WINGS * (w_dot + g0)
     A = np.vstack([- w * (freq_L + freq_R), -(freq_L + freq_R), -2 * np.ones_like(w)]).T
     
     coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
@@ -187,10 +187,10 @@ def regression_longitudinal_forces(thrust_coeffs=0):
     theta = combined_df["optitrack.pitch"]
     freq_L = combined_df["optitrack.freq.left"]
     freq_R = combined_df["optitrack.freq.right"]
-    lz = config.FLAPPER_DIMS["lz"]
-    lw = config.FLAPPER_DIMS["lw"]
-    m = config.MASS_WINGS
-    Iyy = config.MMOI_WITH_WINGS_XY["Iyy"]
+    lz = config_old.FLAPPER_DIMS["lz"]
+    lw = config_old.FLAPPER_DIMS["lw"]
+    m = config_old.MASS_WINGS
+    Iyy = config_old.MMOI_WITH_WINGS_XY["Iyy"]
 
     # Compute state variables
     alpha_L = compute_angle_attack(dihedral, 0, "L")
@@ -340,10 +340,10 @@ def regression_lateral_forces():
     dihedral = combined_df["optitrack.dihedral.right"]
 
 
-    lz = config.FLAPPER_DIMS["lz"]
-    lw = config.FLAPPER_DIMS["lw"]
-    m = config.MASS_WINGS
-    Iyy = config.MMOI_WITH_WINGS_XY["Iyy"]
+    lz = config_old.FLAPPER_DIMS["lz"]
+    lw = config_old.FLAPPER_DIMS["lw"]
+    m = config_old.MASS_WINGS
+    Iyy = config_old.MMOI_WITH_WINGS_XY["Iyy"]
 
 
     # Compute state variables
@@ -356,7 +356,7 @@ def regression_lateral_forces():
     z_L = freq_L * (w - lw * np.sin(dihedral)*q + lw * np.cos(dihedral) * p)
     z_R = freq_R * (w - lw * np.sin(dihedral)*q - lw * np.cos(dihedral) * p)
 
-    lz = config.FLAPPER_DIMS["lz"]
+    lz = config_old.FLAPPER_DIMS["lz"]
 
 
     b = m * (v_dot - g0 * np.sin(phi) - w * p)
