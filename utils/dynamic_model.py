@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.signal import lti
-from . import config
+from . import config_old
 
 g0 = 9.80665  # m/s^2
 
@@ -211,11 +211,11 @@ class DynamicModel:
 
         dihedral_control = self.compute_control_inputs(pwm_m1, self.min_pwm_m1, self.mid_pwm_m1, self.max_pwm_m1, self.dihedral_max)
 
-        freq_left_control = config.PWM_TO_FREQ['m'] * pwm_m2 + config.PWM_TO_FREQ['c']
+        freq_left_control = config_old.PWM_TO_FREQ['m'] * pwm_m2 + config_old.PWM_TO_FREQ['c']
 
         yaw_control = self.compute_control_inputs(pwm_m3, self.min_pwm_m3, self.mid_pwm_m3, self.max_pwm_m3, self.yaw_max)
 
-        freq_right_control = config.PWM_TO_FREQ['m'] * pwm_m4 + config.PWM_TO_FREQ['c']
+        freq_right_control = config_old.PWM_TO_FREQ['m'] * pwm_m4 + config_old.PWM_TO_FREQ['c']
 
         return dihedral_control, freq_left_control, yaw_control, freq_right_control
     
