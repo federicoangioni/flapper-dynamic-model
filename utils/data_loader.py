@@ -10,7 +10,7 @@ DATA_DIR = ROOT_DIR / "data"
 
 def load_data(experiment):
 
-    FILE_PATH = DATA_DIR / experiment / f"{experiment}-onboard.csv"
+    FILE_PATH = DATA_DIR / experiment / f"{experiment}_oriented_onboard.csv"
     data = pd.read_csv(FILE_PATH)
 
     return data

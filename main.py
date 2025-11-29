@@ -54,9 +54,9 @@ if __name__ == "__main__":
 
     else:
         for i in track(range(len(data)), description="Processing..."):
-            setpoints = {"roll": data.loc[i, "onboard.controller.roll"], "pitch": data.loc[i, "onboard.controller.pitch"], "yaw": data.loc[i, "onboard.controller.yaw"], "yawrate": data.loc[i, "onboard.controller.yawRate"]}
+            setpoints = {"roll": data.loc[i, "controller.roll"], "pitch": data.loc[i, "controller.pitch"], "yaw": data.loc[i, "controller.yaw"], "yawrate": data.loc[i, "controller.yawRate"]}
 
-            cmd_thrust = data.loc[i, "onboard.controller.cmd_thrust"]
+            cmd_thrust = data.loc[i, "controller.cmd_thrust"]
 
             simulation.simulate_flapper(setpoints, cmd_thrust, i, data)
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     print(f"[magenta]Process run in {round(end - start, 3)} s[/magenta]")
 
     plt.plot(motors_df["m3"])
-    plt.plot(data["onboard.motor.m3"])
+    plt.plot(data["motor.m3"])
     plt.show()
 
 

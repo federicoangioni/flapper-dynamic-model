@@ -242,8 +242,8 @@ class Simulation():
 
         else:
             # Fetch data from onboard (unprocessed, for now) .csv
-            self.rates = data.loc[i, ["onboard.p", "onboard.q", "onboard.r"]].to_numpy().T
-            self.acc = data.loc[i, ["onboard.acc.x", "onboard.acc.y", "onboard.acc.z"]].to_numpy().T
+            self.rates = data.loc[i, ["p", "q", "r"]].to_numpy().T
+            self.acc = data.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
             
             # Calculate estimated attitude through Mahony filter
             self.attitude = self.state_estimation(self.rates, self.acc)

@@ -109,13 +109,25 @@ servo:
 
 dynamic_model:
   thrust_coeffs:
-    c1: 0.08
-    c2: -0.02
+    c1: 0.0
+    c2: 0.0
   model_coeffs:
-    k_xu: 4.12
-    k_yv: 1.8
-    k_zw: 0.18
-    k_n: 0.0027
+    forces:
+      k_X1: 0.0
+      k_X2: 0.0
+      k_Y1: 0.0
+      k_Z1: 0.0
+      k_Z2: 0.0
+    moments:
+      k_L1: 0.0
+      k_L2: 0.0
+      k_L3: 0.0
+      K_M1: 0.0
+      K_M2: 0.0
+      K_M3: 0.0
+      K_M4: 0.0
+      K_N1: 0.0
+      K_N2: 0.0
 
 flapper_dims:
   lw: 0.08
