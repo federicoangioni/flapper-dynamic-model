@@ -1,0 +1,138 @@
+frequencies:
+  attitude: 500
+  attitude_rate: 500
+
+pid:
+  attitude:
+    roll:
+      kp: 10
+      ki: 0
+      kd: 0.2
+      kff: 0
+      integration_limit: 20.0
+    pitch:
+      kp: 13
+      ki: 0
+      kd: 1
+      kff: 0
+      integration_limit: 20.0
+    yaw:
+      kp: 8
+      ki: 0
+      kd: 0.35
+      kff: 0
+      integration_limit: 360.0
+
+  rate:
+    rollrate:
+      kp: 50
+      ki: 0
+      kd: 0
+      kff: 0
+      filt_cut: 20
+      integration_limit: 33.3
+    pitchrate:
+      kp: 50
+      ki: 0
+      kd: 0
+      kff: 0
+      filt_cut: 20
+      integration_limit: 33.3
+    yawrate:
+      kp: 80
+      ki: 0
+      kd: 0
+      kff: 220
+      filt_cut: 5
+      integration_limit: 166.7
+      max_delta: 30.0
+
+mmoi:
+  with_wings:
+    ixx: 5.6e-4
+    iyy: 3.4e-4
+    izz: 3.6e-4
+  with_wings_xy:
+    ixx: 5.6e-4
+    iyy: 3.4e-4
+    izz: 2.8e-4
+  no_wings:
+    ixx: 3.1e-4
+    iyy: 3.0e-4
+    izz: 2.7e-4
+
+mass:
+  wings: 0.103
+  no_wings: 0.0943
+
+transfer_function:
+  tau_flapping: 0.0796
+  omega_dihedral: 40
+  zeta_dihedral: 0.634
+  omega_yaw: 10
+  zeta_yaw: 0.7
+
+motor:
+  max_thrust_pwm: 60000
+  roll_bias: 0
+  pitch_servo_neutral: 55
+  yaw_servo_neutral: 65
+
+pwm:
+  min:
+    m1: 0
+    m2: 0
+    m3: 0
+    m4: 0
+
+  max:
+    m1: 65535     # uint_16B
+    m2: 60000     # max thrust pwm
+    m3: 65535
+    m4: 60000
+
+  mid:
+    m1: 55
+    m2: 0
+    m3: 65
+    m4: 0
+
+  pwm_to_freq:
+    m: 0.00038492781077195567
+    c: -0.13250131020527664
+
+servo:
+  max_act_state:
+    dihedral_max_deg: 18
+    flapping_max: 35
+    yaw_max_rad: 0.786842889
+
+dynamic_model:
+  thrust_coeffs:
+    c1: 0.0
+    c2: 0.0
+  model_coeffs:
+    forces:
+      k_X1: 0.0
+      k_X2: 0.0
+      k_Y1: 0.0
+      k_Z1: 0.0
+      k_Z2: 0.0
+    moments:
+      k_L1: 0.0
+      k_L2: 0.0
+      k_L3: 0.0
+      K_M1: 0.0
+      K_M2: 0.0
+      K_M3: 0.0
+      K_M4: 0.0
+      K_N1: 0.0
+      K_N2: 0.0
+
+flapper_dims:
+  lw: 0.08
+  ly: 0.036
+  lk: 0.1
+  r: 0.098
+  lz: 0.027
+  l_hinge: 0.035

@@ -3,11 +3,11 @@ import numpy as np
 import pandas as pd
 
 # Local imports
-import utils.config as config
+import utils.config_old as config_old
 from utils.controller import PID_controller
 from utils.state_estimator import MahonyIMU
 from utils.power_distribution import power_distribution, capAngle
-from utils.open_loop import DynamicModel
+from utils.dynamic_model import DynamicModel
 
 
 
@@ -15,12 +15,13 @@ prefix_data = ""
 
 class Simulation():
     def __init__(self, dt, use_open_loop):
+        self.time_elapsed = 0
 
         self.dt = dt
 
         self.use_open_loop = use_open_loop
 
-        self.motors_list = [{"m1": config.MID_PWM['m1'], "m2": 0, "m3": config.MID_PWM['m3'], "m4": 0},]
+        self.motors_list = [{"m1": config_old.MID_PWM['m1'], "m2": 0, "m3": config_old.MID_PWM['m3'], "m4": 0},]
 
         self.controls_list = [{"thrust": 0, "roll": 0, "pitch": 0, "yaw": 0},]
 
@@ -69,56 +70,63 @@ class Simulation():
         self.attitude=np.array([0, 0, 0])
         self.rates = np.array([0, 0, 0])
 
+        self.bias_buffer = []
+        self.accel_bias = np.array([0.0, 0.0, 0.0])
+        self.calibration_samples = 6000
 
         # Instantiate the sensor fusion filter
         self.sensfusion = MahonyIMU()
 
         # Instantiate PID attitude controllers
         self.roll_pid = PID_controller(
-            config.ROLL_KP, config.ROLL_KI, config.ROLL_KD, config.ROLL_KFF,
-            config.ROLL_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.ROLL_KP, config_old.ROLL_KI, config_old.ROLL_KD, config_old.ROLL_KFF,
+            config_old.ROLL_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
         self.pitch_pid = PID_controller(
-            config.PITCH_KP, config.PITCH_KI, config.PITCH_KD, config.PITCH_KFF,
-            config.PITCH_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.PITCH_KP, config_old.PITCH_KI, config_old.PITCH_KD, config_old.PITCH_KFF,
+            config_old.PITCH_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
         self.yaw_pid = PID_controller(
-            config.YAW_KP, config.YAW_KI, config.YAW_KD, config.YAW_KFF,
-            config.YAW_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE, config.FREQ_ATTITUDE, 0, False
+            config_old.YAW_KP, config_old.YAW_KI, config_old.YAW_KD, config_old.YAW_KFF,
+            config_old.YAW_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE, config_old.FREQ_ATTITUDE, 0, False
         )
 
         # Instantiate PID attitude rate controllers
         self.rollrate_pid = PID_controller(
-            config.ROLLRATE_KP, config.ROLLRATE_KI, config.ROLLRATE_KD, config.ROLLRATE_KFF,
-            config.ROLLRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMX_FILT_CUT, True
+            config_old.ROLLRATE_KP, config_old.ROLLRATE_KI, config_old.ROLLRATE_KD, config_old.ROLLRATE_KFF,
+            config_old.ROLLRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMX_FILT_CUT, True
         )
         self.pitchrate_pid = PID_controller(
-            config.PITCHRATE_KP, config.PITCHRATE_KI, config.PITCHRATE_KD, config.PITCHRATE_KFF,
-            config.PITCHRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMY_FILT_CUT, True
+            config_old.PITCHRATE_KP, config_old.PITCHRATE_KI, config_old.PITCHRATE_KD, config_old.PITCHRATE_KFF,
+            config_old.PITCHRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMY_FILT_CUT, True
         )
         self.yawrate_pid = PID_controller(
-            config.YAWRATE_KP, config.YAWRATE_KI, config.YAWRATE_KD, config.YAWRATE_KFF,
-            config.YAWRATE_INTEGRATION_LIMIT, 1 / config.FREQ_ATTITUDE_RATE, config.FREQ_ATTITUDE_RATE,
-            config.OMZ_FILT_CUT, True, 32767.0
+            config_old.YAWRATE_KP, config_old.YAWRATE_KI, config_old.YAWRATE_KD, config_old.YAWRATE_KFF,
+            config_old.YAWRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
+            config_old.OMZ_FILT_CUT, True, 32767
         )
 
         # Instantiate the open loop model
-        self.Flapper = DynamicModel(1 / config.FREQ_ATTITUDE, config.MMOI_WITH_WINGS_XY, config.MASS_WINGS, config.MODEL_COEFFS, 
-                            config.THRUST_COEFFS, config.FLAPPER_DIMS, config.TF_COEFFS, config.MAX_PWM, config.MID_PWM, config.MIN_PWM, 
-                            config.MAX_ACT_STATE)
+        # self.Flapper = DynamicModel(1 / config_old.FREQ_ATTITUDE, config_old.MMOI_WITH_WINGS_XY, config_old.MASS_WINGS, config_old.MODEL_COEFFS, 
+        #                     config_old.THRUST_COEFFS, config_old.FLAPPER_DIMS, config_old.TF_COEFFS, config_old.MAX_PWM, config_old.MID_PWM, config_old.MIN_PWM, 
+        #                     config_old.MAX_ACT_STATE)
 
 
     def state_estimation(self, rates, acc):
         p, q, r = rates
         ax, ay, az = acc
+    
+        if self.time_elapsed % (1/250):
 
-        qx, qy, qz, qw = self.sensfusion.sensfusion6Update(p, -q, -r, ax, ay, az, self.dt)
+            self.sensfusion.sensfusion6UpdateQ(p, -q, -r, ax, ay, az, self.dt)
 
-        yaw, pitch, roll = np.degrees(R.from_quat([qx, qy, qz, qw]).as_euler("ZYX"))
+            self.sensfusion.sensfusion6GetEulerRPY()
 
-        return roll, -pitch, yaw
+            az = self.sensfusion.sensfusion6GetAccZWithoutGravity(ax, ay, az)
+
+        return self.sensfusion.roll, self.sensfusion.pitch, self.sensfusion.yaw
 
 
     def attitude_controllers(self, attitude, attitude_desired):
@@ -148,13 +156,13 @@ class Simulation():
         if yaw_mode == "velocity":
             self.attitude_desired[2] = capAngle(self.attitude_desired[2] + setpoints["yawrate"] * self.dt)
 
-            if config.YAW_MAX_DELTA != 0.0:
+            if config_old.YAW_MAX_DELTA != 0.0:
                 delta = capAngle(self.attitude_desired[2] - self.attitude[2])
 
-                if delta > config.YAW_MAX_DELTA:
-                    self.attitude_desired[2] = self.attitude[2] + config.YAW_MAX_DELTA
-                elif delta < -config.YAW_MAX_DELTA:
-                    self.attitude_desired[2] = self.attitude[2] - config.YAW_MAX_DELTA
+                if delta > config_old.YAW_MAX_DELTA:
+                    self.attitude_desired[2] = self.attitude[2] + config_old.YAW_MAX_DELTA
+                elif delta < -config_old.YAW_MAX_DELTA:
+                    self.attitude_desired[2] = self.attitude[2] - config_old.YAW_MAX_DELTA
 
             self.attitude_desired[0] = setpoints["roll"]
             self.attitude_desired[1] = setpoints["pitch"]
@@ -242,11 +250,64 @@ class Simulation():
 
         else:
             # Fetch data from onboard (unprocessed, for now) .csv
-            self.rates = data.loc[i, ["onboard.p", "onboard.q", "onboard.r"]].to_numpy().T
-            self.acc = data.loc[i, ["onboard.acc.x", "onboard.acc.y", "onboard.acc.z"]].to_numpy().T
+            self.rates = data.loc[i, ["p", "q", "r"]].to_numpy().T
+            self.acc = data.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
+
+            if i < self.calibration_samples:
+                self.bias_buffer.append((self.acc[0], self.acc[1], self.acc[2]))
+                self.attitude = [0.0, 0.0, 0.0]
+            elif i == self.calibration_samples:
+                buf = np.array(self.bias_buffer)
+                self.accel_bias = np.array([buf[:, 0].mean(), buf[:, 1].mean(), buf[:, 2].mean() - 1.0])
+                self.attitude = [0.0, 0.0, 0.0]
+            else:
+
+                # Apply bias correction
+                acc_corrected = self.acc - self.accel_bias
+
+                # Run state estimation with corrected accelerometer
+                self.attitude = self.state_estimation(self.rates, acc_corrected)
             
-            # Calculate estimated attitude through Mahony filter
-            self.attitude = self.state_estimation(self.rates, self.acc)
+
+            self.flapper_state.append({
+                                    # attitude (phi, theta, psi)
+                                    "phi": self.attitude[0],
+                                    "theta": self.attitude[1],
+                                    "psi": self.attitude[2],
+
+                                    # rates (p, q, r)
+                                    "p": self.rates[0],
+                                    "q": self.rates[1],
+                                    "r": self.rates[2],
+
+                                    # rates derivatives 
+                                    "p_dot": 0,
+                                    "q_dot": 0,
+                                    "r_dot": 0,
+
+                                    # global position
+                                    "x_glob": 0,
+                                    "y_glob": 0,
+                                    "z_glob": 0,
+
+                                    # velocities
+                                    "vel.x": 0,
+                                    "vel.y": 0,
+                                    "vel.z": 0,
+
+                                    # accelerations
+                                    "acc.x": self.acc[0],
+                                    "acc.y": self.acc[1],
+                                    "acc.z": self.acc[2],
+
+                                    # control inputs
+                                    "freq.left": 0,
+                                    "freq.right": 0,
+                                    "dihedral": 0,
+                                    "yaw_servo": 0
+                                })
+            
+        self.time_elapsed += self.dt
         
        
 

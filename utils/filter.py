@@ -1,22 +1,30 @@
-from scipy import signal
 import numpy as np
 
 class LP2Pfilter:
     def __init__(self, sample_freq, cutoff_freq):
-        self.sample_freq = sample_freq
-        self.cutoff_freq = cutoff_freq
-        self._design_filter()
 
-        self.z = np.zeros(max(len(self.a), len(self.b)) - 1)
+        fr = sample_freq/cutoff_freq
+        ohm = np.tan(np.pi/fr)
+        c = 1.0+2.0*np.cos(np.pi / 4.0)*ohm + ohm*ohm
+        self.b0 = ohm*ohm/c
+        self.b1 = 2.0*self.b0
+        self.b2 = self.b0
+        self.a1 = 2.0 *(ohm*ohm -1.0)/c
+        self.a2 = (1.0 - 2.0*np.cos(np.pi / 4.0)*ohm + ohm*ohm)/c
+        self.delay_element_1 = 0.0
+        self.delay_element_2 = 0.0
 
-    def _design_filter(self):
-        nyquist = 0.5 * self.sample_freq
-        normal_cutoff = self.cutoff_freq / nyquist
-
-        # Design 2nd order Butterworth low-pass filter
-        self.b, self.a = signal.butter(2, normal_cutoff, btype='low', analog=False)
-    
     def apply(self, sample):
 
-        output, self.z = signal.lfilter(self.b, self.a, [sample], zi=self.z)
-        return output[0]
+        delay_element_0 = sample - self.delay_element_1 * self.a1 - self.delay_element_2 * self.a2
+
+        if not np.isfinite(delay_element_0):
+            delay_element_0 = sample
+        
+        output = delay_element_0 * self.b0 + self.delay_element_1 * self.b1 + self.delay_element_2 * self.b2
+
+        self.delay_element_2 = self.delay_element_1
+        self.delay_element_1 = delay_element_0
+
+        return output
+    

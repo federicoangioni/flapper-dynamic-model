@@ -5,7 +5,7 @@ USE_DYNAMIC_MODEL = False
 FLIGHT = "flight_001"
 
 UINT_16B = 65535
-g0 = 9.80665
+g0 = 9.81
 
 
 FREQ_ATTITUDE = 500  # Hz
@@ -87,23 +87,23 @@ ROLLBIAS = 0
 
 PITCH_SERVO_NEUTRAL = 55
 
-YAW_SERVO_NEUTRAL = 65
+YAW_SERVO_NEUTRAL = 60
 
 MIN_PWM = {'m1' : 0, 'm2': 0, 'm3': 0, 'm4': 0}
 
 # Dihedral and yaw maximum angle estimated from pictures
-MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(18), 'flapping_max': 35, 'yaw_max':  0.786842889}
+# MAX_ACT_STATE = {'dihedral_max' : np.deg2rad(18), 'flapping_max': 35, 'yaw_max':  0.786842889}
 
 # Dynamic model specifics
 
-THRUST_COEFFS = {'c1': 0.08, 'c2': -0.02} # Flapper +
+# THRUST_COEFFS = {'c1': 0.08, 'c2': -0.02} # Flapper +
 
-MODEL_COEFFS = {'k_xu': 4.12, 'k_yv': 1.8, 'k_zw': 1.8e-1, 'k_N': 2.7e-3}
+# MODEL_COEFFS = {'k_xu': 4.12, 'k_yv': 1.8, 'k_zw': 1.8e-1, 'k_N': 2.7e-3}
 
-FLAPPER_DIMS = {'lw' : 0.08, 'ly': 0.036, 'lk': 0.1, 'R':0.098, 'lz' : 0.027, 'l_hinge': 0.035}
+# FLAPPER_DIMS = {'lw' : 0.08, 'ly': 0.036, 'lk': 0.1, 'R':0.098, 'lz' : 0.027, 'l_hinge': 0.035}
 
 # Assembling necessary dictionaries
-TF_COEFFS = {'tau_flapping': TAU_FLAPPING, 'omega_dihedral': OMEGA_DIHEDRAL, 'zeta_dihedral': ZETA_DIHEDRAL, 'omega_yaw': OMEGA_YAW, 'zeta_yaw': ZETA_YAW}
+# TF_COEFFS = {'tau_flapping': TAU_FLAPPING, 'omega_dihedral': OMEGA_DIHEDRAL, 'zeta_dihedral': ZETA_DIHEDRAL, 'omega_yaw': OMEGA_YAW, 'zeta_yaw': ZETA_YAW}
 
 MAX_PWM = {'m1' : UINT_16B, 'm2':  MAXTHRUST_PWM, 'm3': UINT_16B, 'm4': MAXTHRUST_PWM}
 
@@ -111,4 +111,4 @@ FLAPPERCONFIG = {"pitchServoNeutral": PITCH_SERVO_NEUTRAL, "yawServoNeutral": YA
 
 MID_PWM = {'m1': PITCH_SERVO_NEUTRAL * MAX_PWM['m1'] / 100, 'm2' : 0, 'm3': YAW_SERVO_NEUTRAL * MAX_PWM['m3'] / 100, 'm4': 0}
 
-PWM_TO_FREQ = {'m' : 0.00038492781077195567, 'c': -0.13250131020527664}
+# PWM_TO_FREQ = {'m' : 0.00038492781077195567, 'c': -0.13250131020527664}

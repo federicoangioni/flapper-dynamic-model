@@ -8,3 +8,6 @@ regression:
 regression-save:
 	$(PYTHON) regression.py | tee outputs/regression.txt
 
+simulation:
+	$(PYTHON) main.py
+

@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 import cma
 import warnings
 
-from utils import config
+from utils import config_old
 
 WORKING_DIR = Path.cwd()
 DATA_DIR = WORKING_DIR / 'data'
@@ -24,9 +24,9 @@ def compute_thrust(coeffs, f):
 
 def compute_angle_attack(dihedral, yaw_servo_angle, wing="R"):
     alpha = 0
-    lw = config.FLAPPER_DIMS["lw"]
-    ly = config.FLAPPER_DIMS["ly"]
-    lk = config.FLAPPER_DIMS["lk"]
+    lw = config_old.FLAPPER_DIMS["lw"]
+    ly = config_old.FLAPPER_DIMS["ly"]
+    lk = config_old.FLAPPER_DIMS["lk"]
 
     if wing == "R":
         arg = (- lw * np.sin(dihedral) - ly * np.sin(yaw_servo_angle)) / lk
@@ -70,9 +70,9 @@ def pitch_dynamics(t, state, interp_funcs, thrust_coeffs, k_params, neutral_pos)
         return [0.0, 0.0]
     
     # Physical parameters
-    lz = config.FLAPPER_DIMS["lz"]
-    lw = config.FLAPPER_DIMS["lw"]
-    Iyy = config.MMOI_WITH_WINGS_XY["Iyy"]
+    lz = config_old.FLAPPER_DIMS["lz"]
+    lw = config_old.FLAPPER_DIMS["lw"]
+    Iyy = config_old.MMOI_WITH_WINGS_XY["Iyy"]
     
     # Compute angle of attack
     alpha_L = compute_angle_attack(dihedral, 0, "L")
