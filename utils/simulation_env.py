@@ -15,6 +15,7 @@ prefix_data = ""
 
 class Simulation():
     def __init__(self, dt, use_open_loop):
+        self.time_elapsed = 0
 
         self.dt = dt
 
@@ -69,6 +70,9 @@ class Simulation():
         self.attitude=np.array([0, 0, 0])
         self.rates = np.array([0, 0, 0])
 
+        self.bias_buffer = []
+        self.accel_bias = np.array([0.0, 0.0, 0.0])
+        self.calibration_samples = 6000
 
         # Instantiate the sensor fusion filter
         self.sensfusion = MahonyIMU()
@@ -101,24 +105,28 @@ class Simulation():
         self.yawrate_pid = PID_controller(
             config_old.YAWRATE_KP, config_old.YAWRATE_KI, config_old.YAWRATE_KD, config_old.YAWRATE_KFF,
             config_old.YAWRATE_INTEGRATION_LIMIT, 1 / config_old.FREQ_ATTITUDE_RATE, config_old.FREQ_ATTITUDE_RATE,
-            config_old.OMZ_FILT_CUT, True, 32767.0
+            config_old.OMZ_FILT_CUT, True, 32767
         )
 
         # Instantiate the open loop model
-        self.Flapper = DynamicModel(1 / config_old.FREQ_ATTITUDE, config_old.MMOI_WITH_WINGS_XY, config_old.MASS_WINGS, config_old.MODEL_COEFFS, 
-                            config_old.THRUST_COEFFS, config_old.FLAPPER_DIMS, config_old.TF_COEFFS, config_old.MAX_PWM, config_old.MID_PWM, config_old.MIN_PWM, 
-                            config_old.MAX_ACT_STATE)
+        # self.Flapper = DynamicModel(1 / config_old.FREQ_ATTITUDE, config_old.MMOI_WITH_WINGS_XY, config_old.MASS_WINGS, config_old.MODEL_COEFFS, 
+        #                     config_old.THRUST_COEFFS, config_old.FLAPPER_DIMS, config_old.TF_COEFFS, config_old.MAX_PWM, config_old.MID_PWM, config_old.MIN_PWM, 
+        #                     config_old.MAX_ACT_STATE)
 
 
     def state_estimation(self, rates, acc):
         p, q, r = rates
         ax, ay, az = acc
+    
+        if self.time_elapsed % (1/250):
 
-        qx, qy, qz, qw = self.sensfusion.sensfusion6Update(p, -q, -r, ax, ay, az, self.dt)
+            self.sensfusion.sensfusion6UpdateQ(p, -q, -r, ax, ay, az, self.dt)
 
-        yaw, pitch, roll = np.degrees(R.from_quat([qx, qy, qz, qw]).as_euler("ZYX"))
+            self.sensfusion.sensfusion6GetEulerRPY()
 
-        return roll, -pitch, yaw
+            az = self.sensfusion.sensfusion6GetAccZWithoutGravity(ax, ay, az)
+
+        return self.sensfusion.roll, self.sensfusion.pitch, self.sensfusion.yaw
 
 
     def attitude_controllers(self, attitude, attitude_desired):
@@ -244,9 +252,62 @@ class Simulation():
             # Fetch data from onboard (unprocessed, for now) .csv
             self.rates = data.loc[i, ["p", "q", "r"]].to_numpy().T
             self.acc = data.loc[i, ["acc.x", "acc.y", "acc.z"]].to_numpy().T
+
+            if i < self.calibration_samples:
+                self.bias_buffer.append((self.acc[0], self.acc[1], self.acc[2]))
+                self.attitude = [0.0, 0.0, 0.0]
+            elif i == self.calibration_samples:
+                buf = np.array(self.bias_buffer)
+                self.accel_bias = np.array([buf[:, 0].mean(), buf[:, 1].mean(), buf[:, 2].mean() - 1.0])
+                self.attitude = [0.0, 0.0, 0.0]
+            else:
+
+                # Apply bias correction
+                acc_corrected = self.acc - self.accel_bias
+
+                # Run state estimation with corrected accelerometer
+                self.attitude = self.state_estimation(self.rates, acc_corrected)
             
-            # Calculate estimated attitude through Mahony filter
-            self.attitude = self.state_estimation(self.rates, self.acc)
+
+            self.flapper_state.append({
+                                    # attitude (phi, theta, psi)
+                                    "phi": self.attitude[0],
+                                    "theta": self.attitude[1],
+                                    "psi": self.attitude[2],
+
+                                    # rates (p, q, r)
+                                    "p": self.rates[0],
+                                    "q": self.rates[1],
+                                    "r": self.rates[2],
+
+                                    # rates derivatives 
+                                    "p_dot": 0,
+                                    "q_dot": 0,
+                                    "r_dot": 0,
+
+                                    # global position
+                                    "x_glob": 0,
+                                    "y_glob": 0,
+                                    "z_glob": 0,
+
+                                    # velocities
+                                    "vel.x": 0,
+                                    "vel.y": 0,
+                                    "vel.z": 0,
+
+                                    # accelerations
+                                    "acc.x": self.acc[0],
+                                    "acc.y": self.acc[1],
+                                    "acc.z": self.acc[2],
+
+                                    # control inputs
+                                    "freq.left": 0,
+                                    "freq.right": 0,
+                                    "dihedral": 0,
+                                    "yaw_servo": 0
+                                })
+            
+        self.time_elapsed += self.dt
         
        
 

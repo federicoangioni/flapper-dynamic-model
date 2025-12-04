@@ -1,5 +1,4 @@
 import numpy as np
-import struct
 
 
 class MahonyIMU:
@@ -10,7 +9,7 @@ class MahonyIMU:
         self.baseZacc = 1.0
 
         # Use MAHONY Quaternion IMU
-        self.two_kp = 2.0 * 0.4
+        self.two_kp = 2.0 * 0.25 # original is 0.4
         self.two_ki = 2.0 * 0.001
 
         self.integralFBx = 0.0
@@ -69,7 +68,7 @@ class MahonyIMU:
             gz += self.two_kp * halfez
 
         # Integrate rate of change of quaternion
-        gx *= 0.5 * dt  #  pre-multiply common factors
+        gx *= 0.5 * dt  # pre-multiply common factors
         gy *= 0.5 * dt
         gz *= 0.5 * dt
         qa = self.qw
@@ -88,7 +87,7 @@ class MahonyIMU:
         self.qz *= recipNorm
 
         return self.qx, self.qy, self.qz, self.qw
-    
+
     def sensfusion6GetAccZ(self, ax, ay, az):
         return (ax * self.gravX + ay * self.gravY + az * self.gravZ)
 
@@ -102,31 +101,27 @@ class MahonyIMU:
         gy = self.gravY
         gz = self.gravZ
 
-        if (gx>1): 
-            gx=1
+        if gx > 1:
+            gx = 1
 
-        if (gx<-1):
-            gx=-1
+        if gx < -1:
+            gx = -1
 
-        self.yaw = np.atan2(2*(self.qw*self.qz + self.qx*self.qy), self.qw*self.qw + self.qx*self.qx - self.qy*self.qy - self.qz*self.qz) * 180 / np.pi
-        self.pitch = np.arcsin(gx) * 180 / np.pi # Pitch seems to be inverted
+        self.yaw = np.atan2(2 * (self.qw * self.qz + self.qx * self.qy),
+                           self.qw * self.qw + self.qx * self.qx - self.qy * self.qy - self.qz * self.qz) * 180 / np.pi
+        self.pitch = np.arcsin(gx) * 180 / np.pi  # Pitch seems to be inverted
         self.roll = np.atan2(gy, gz) * 180 / np.pi
 
     def sensfusion6GetAccZWithoutGravity(self, ax, ay, az):
-        
         return self.sensfusion6GetAccZ(ax, ay, az) - self.baseZacc
-        
+
 
 def inv_sqrt(x):
-    # Bit-level hacking via struct
-    threehalfs = 1.5
-
-    y = x
-    i = struct.unpack('i', struct.pack('f', y))[0]   # float → int (32-bit)
-    i = 0x5f3759df - (i >> 1)                        # magic number
-    y = struct.unpack('f', struct.pack('i', i))[0]   # int → float (32-bit)
-
-    # One iteration of Newton–Raphson
-    y = y * (threehalfs - 0.5 * x * y * y)
-
-    return y
+    """
+    Compute 1/sqrt(x) using NumPy.
+    
+    Note: The original C implementation used the "fast inverse square root" hack
+    for performance on embedded systems. In Python, np.sqrt is already optimized
+    and more accurate, so we use it directly.
+    """
+    return 1.0 / np.sqrt(x)

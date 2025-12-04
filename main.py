@@ -31,6 +31,8 @@ if __name__ == "__main__":
 
     # Declare data file paths
     data = load_data(config_old.FLIGHT)
+
+    # data = data.iloc[0:30000, :]
    
     # Load onboard data
     if config_old.USE_DYNAMIC_MODEL:
@@ -65,10 +67,48 @@ if __name__ == "__main__":
 
     end = time()
 
+    print(flapper_state_df["acc.x"][:500].mean(), flapper_state_df["acc.y"][:500].mean(), flapper_state_df["acc.z"][:500].mean(), )
+
     print(f"[magenta]Process run in {round(end - start, 3)} s[/magenta]")
 
-    plt.plot(motors_df["m3"])
-    plt.plot(data["motor.m3"])
+    # plt.subplot(1, 3, 1)
+    # plt.plot(data["acc.x"], label="recorded")
+    # plt.plot(flapper_state_df["acc.x"], label="simulated")
+    
+    # plt.legend()
+
+    # plt.subplot(1, 3, 2)
+    # plt.title("Estimated roll")
+    # plt.plot(data["acc.y"], label="recorded")
+    # plt.plot(flapper_state_df["acc.y"], label="simulated")
+    # plt.legend()
+
+    # plt.subplot(1, 3, 3)
+    # plt.title("Estimated pitch")
+    # plt.plot(data["acc.z"], label="recorded")
+    # plt.plot(flapper_state_df["acc.z"], label="simulated")
+    # plt.legend()
+
+
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.plot(flapper_state_df["theta"], label="simulated")
+    plt.plot(data["controller.pitch"], label="recorded")
+    
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    plt.title("Estimated roll")
+    plt.plot(flapper_state_df["phi"], label="simulated")
+    plt.plot(data["controller.roll"], label="recorded")
+    plt.legend()
+
+    # plt.subplot(1, 3, 3)
+    # plt.title("Estimated pitch")
+    # plt.plot(flapper_state_df["psi"], label="simulated")
+    # plt.plot(data["controller.yaw"], label="recorded")
+    # plt.legend()
+
     plt.show()
 
 
